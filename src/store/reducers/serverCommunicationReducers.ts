@@ -43,9 +43,6 @@ export const serverCommunicationSlice = createSlice({
   },
 });
 
-
-
-
 export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState, unknown, AnyAction> => {
   return async (dispatch: any, getState: () => RootState) => {
     const state = getState();
@@ -84,31 +81,31 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(newConfiguration),
-      // signal: serverCommunication.abortController.signal,
       signal: abortController.signal,
-
-      onmessage: (event) => {
-        const newState = JSON.parse(event.data) as ConfigurationUpdate;        
-        // newState.sectors.forEach((sector) => {
-
-        //   sector.row+=1;
-        //   sector.column+=1;
-        // });
-        console.log('Event received:', newState);
-        if (abortController.signal.aborted) {
-          console.log("Aborted")
-          return;
-        }
-        dispatch(updateConfiguration({ configurationUpdate: newState }));
+      onopen: () => {
+        console.log("SSE connection opened successfully");
       },
-      onerror: (event) => {
-        console.error('Event error:', event);
+      onmessage: (event) => {
+        console.log('Raw event data:', event.data);
+        try {
+          const newState = JSON.parse(event.data) as ConfigurationUpdate;
+          console.log('Event parsed successfully:', newState);
+          if (abortController.signal.aborted) {
+            console.log("Aborted");
+            return;
+          }
+          dispatch(updateConfiguration({ configurationUpdate: newState }));
+        } catch (parseError) {
+          console.error('Error parsing event data:', parseError, 'Raw data:', event.data);
+        }
+      },
+      onerror: (error) => {
+        console.error('SSE Error:', error);
       },
       onclose: () => {
         console.log('Event source closed');
-      },
+      }
     });
-
   }
 }
 
