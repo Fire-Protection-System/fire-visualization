@@ -14,7 +14,6 @@ export const RunSimulationButton = () => {
   const dispatch: AppDispatch = useDispatch();
 
   const navigate = useNavigate();  
-  console.log("??");
 
   const ctrl = useRef<AbortController>(new AbortController());
 
