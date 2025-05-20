@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { abortConnection, startFetchingConfigurationUpdate } from '../../store/reducers/serverCommunicationReducers';
 import { UnknownAction } from '@reduxjs/toolkit';
 
+//probably something here is used instead of stop simulation button
 export const RunSimulationButton = () => {
   const { configuration: mapConfiguration } = useSelector((state: RootState) => state.mapConfiguration);
   const dispatch: AppDispatch = useDispatch();

@@ -6,18 +6,21 @@ import { ConfigurationUpdate, isDefaultConfiguration } from '../../model/configu
 import { updateConfiguration } from '../../store/reducers/mapConfigurationSlice';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useNavigate } from 'react-router-dom';
-import { abortConnection } from '../../store/reducers/serverCommunicationReducers';
+import { abortConnection, sendStopRequest } from '../../store/reducers/serverCommunicationReducers';
 
+//this button probably isn't even used, nor stopSimulation is
 export const StopSimulationButton = () => {
   const { configuration: mapConfiguration } = useSelector((state: RootState) => state.mapConfiguration);
   const dispatch: AppDispatch = useDispatch();
   
   const navigate = useNavigate();  
 
-  const stopSimulation = useCallback(() => {       
-    // console.log("Simulation stopped");
-    navigate('/');
-    dispatch(abortConnection())
+  const stopSimulation = useCallback(() => {
+//      console.log("Stop button pushed");
+//      dispatch(sendStopRequest());
+//    console.log("Simulation stopped");
+//    navigate('/');
+//    dispatch(abortConnection())
 
   }, []);
 
