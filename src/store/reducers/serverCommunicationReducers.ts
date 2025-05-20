@@ -110,13 +110,13 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
 }
 
 export const sendStopRequest = (): ThunkAction<void, RootState, unknown, AnyAction> => {
-//   return async (dispatch: any, getState: () => RootState) => {
-//     const state = getState();
-//     const { serverCommunication, mapConfiguration } = state;
-//     if (serverCommunication.isFetching == false) {
-//       return;
-//     }
-//     dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: false }));
+   return async (dispatch: any, getState: () => RootState) => {
+    const state = getState();
+    const { serverCommunication, mapConfiguration } = state;
+    if (serverCommunication.isFetching == false) {
+      return;
+    }
+    dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: false }));
 
     await fetch(`http://localhost:8181/stop-simulation`, {
       method: 'POST',
@@ -125,6 +125,7 @@ export const sendStopRequest = (): ThunkAction<void, RootState, unknown, AnyActi
       },
       body: "",
     });
+    }
 }
 
 export const sendBrigadeOrForesterMoveOrder = (unitId: number, targetSectorId: number, type: "brigade"|"forester"): ThunkAction<void, RootState, unknown, AnyAction> => {

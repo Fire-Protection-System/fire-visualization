@@ -16,11 +16,10 @@ export const StopSimulationButton = () => {
   const navigate = useNavigate();  
 
   const stopSimulation = useCallback(() => {
-//      console.log("Stop button pushed");
-//      dispatch(sendStopRequest());
-//    console.log("Simulation stopped");
-//    navigate('/');
-//    dispatch(abortConnection())
+     dispatch(sendStopRequest());
+   console.log("Simulation stopped");
+   navigate('/');
+   dispatch(abortConnection())
 
   }, []);
 
