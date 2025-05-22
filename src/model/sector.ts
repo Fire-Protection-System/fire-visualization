@@ -1,4 +1,4 @@
-import { Direction } from './geography';
+import type { Direction } from './geography';
 
 export const SectorTypes = ['DECIDUOUS', 'MIXED', 'CONIFEROUS', 'FIELD', 'FALLOW', 'WATER', 'UNTRACKED'] as const;
 

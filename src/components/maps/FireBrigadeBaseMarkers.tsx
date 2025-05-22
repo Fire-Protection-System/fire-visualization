@@ -7,7 +7,7 @@ import type { Marker } from '@googlemaps/markerclusterer';
 
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
-import { FireBrigade, FireBrigadeBase, FireBrigadeState } from '../../model/FireBrigade';
+import { FireBrigadeBase } from '../../model/FireBrigade';
 
 export type FireBrigadeBaseMarker = {
   location: google.maps.LatLngLiteral;
@@ -20,9 +20,7 @@ export const FireBrigadeBaseMarkers = () => {
   // This has to be ref, not state because
   // state causes to the app to crash due to too many rerenders
   const markers = useRef<{ [key: string]: Marker }>({});
-
   const clusterer = useRef<MarkerClusterer | null>(null);
-
   const fireBrigades = useSelector((state: RootState) => state.mapConfiguration.configuration.fireBrigades);
 
   // Initialize MarkerClusterer
