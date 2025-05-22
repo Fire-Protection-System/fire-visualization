@@ -21,9 +21,7 @@ export const FireBrigadeMarkers = () => {
   // This has to be ref, not state because
   // state causes to the app to crash due to too many rerenders
   const markers = useRef<{ [key: string]: Marker }>({});
-
   const clusterer = useRef<MarkerClusterer | null>(null);
-
   const fireBrigades = useSelector((state: RootState) => state.mapConfiguration.configuration.fireBrigades);
 
   // Initialize MarkerClusterer
@@ -72,12 +70,12 @@ export const FireBrigadeMarkers = () => {
 const fireBrigadeStateToEmoji = (fireBrigadeState: FireBrigadeState) => {
   switch (fireBrigadeState) {
     case 'AVAILABLE':
-      return '👨🏻‍🚒';
+      return '🚒';
     case 'TRAVELLING':
       return '🚒';
     case 'EXTINGUISHING':
-      return '🧯';
+      return '🚒';
     default:
-      return '❌';
+      return '🚒';
   }
 };

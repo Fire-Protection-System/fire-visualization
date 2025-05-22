@@ -1,16 +1,13 @@
-import { combineReducers, createSlice, ThunkAction, UnknownAction } from '@reduxjs/toolkit';
-import { Configuration, ConfigurationUpdate, getDefaultConfiguration } from '../../model/configuration/configuration';
-import { FileSystemNode } from '../../model/FileSystemModel/FileSystemNode';
-import { NodeTypeEnum } from '../../model/FileSystemModel/NodeTypeEnum';
-import { Sensor } from '../../model/sensor';
-import { Camera } from '../../model/camera';
+import { createSlice, ThunkAction } from '@reduxjs/toolkit';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { AnyAction } from 'redux';
+
+import { Configuration } from '../../model/configuration/configuration';
 import { FireBrigade } from '../../model/FireBrigade';
 import { ForesterPatrol } from '../../model/ForesterPatrol';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { dispatch, RootState } from '../reduxStore';
+import { RootState } from '../reduxStore';
 import { updateConfiguration } from './mapConfigurationSlice';
-import { AnyAction } from 'redux';
-import Decimal from 'decimal.js';
+import { updateRecommendation } from './recommendationSlice';
 
 type serverCommunicationState = {
   // abortController: AbortController;
@@ -43,6 +40,17 @@ export const serverCommunicationSlice = createSlice({
   },
 });
 
+export type RecommendedAction = {
+  unitId: number;
+  sectorId: number;
+};
+
+export type Recommendation = {
+  timestamp: number;
+  recommendedActions: RecommendedAction[];
+  priority: string;
+};
+
 export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState, unknown, AnyAction> => {
   return async (dispatch: any, getState: () => RootState) => {
     const state = getState();
@@ -51,7 +59,7 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       return;
     }
 
-    console.log(mapConfiguration.configuration);
+    // console.log(mapConfiguration.configuration);
 
     const newConfiguration: Configuration = JSON.parse(JSON.stringify(mapConfiguration.configuration));
 
@@ -82,19 +90,36 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       },
       body: JSON.stringify(newConfiguration),
       signal: abortController.signal,
-      onopen: () => {
+
+      onopen: async (response: Response): Promise<void> => {
         console.log("SSE connection opened successfully");
       },
+      
       onmessage: (event) => {
-        console.log('Raw event data:', event.data);
         try {
-          const newState = JSON.parse(event.data) as ConfigurationUpdate;
-          console.log('Event parsed successfully:', newState);
+          const parsedData = JSON.parse(event.data);
+          console.log('Event parsed successfully:', parsedData);
+
           if (abortController.signal.aborted) {
             console.log("Aborted");
             return;
           }
-          dispatch(updateConfiguration({ configurationUpdate: newState }));
+
+          console.log(parsedData);
+
+          if (parsedData) {
+            console.log("update config");
+            dispatch(updateConfiguration({ configurationUpdate: parsedData }));
+          }
+          
+          if (parsedData.timestamp && parsedData.recommendedActions) {
+            dispatch(updateRecommendation({
+              timestamp: parsedData.timestamp,
+              recommendedActions: parsedData.recommendedActions,
+              priority: parsedData.priority || "normal"
+            }));
+          }
+
         } catch (parseError) {
           console.error('Error parsing event data:', parseError, 'Raw data:', event.data);
         }
@@ -107,6 +132,13 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       }
     });
   }
+}
+
+function getRandomIntInclusive(min: number, max: number) {
+  const low = Math.min(min, max);
+  const high = Math.max(min, max);
+
+  return Math.random() * (high - low) + low;
 }
 
 export const sendBrigadeOrForesterMoveOrder = (unitId: number, targetSectorId: number, type: "brigade"|"forester"): ThunkAction<void, RootState, unknown, AnyAction> => {
@@ -122,11 +154,20 @@ export const sendBrigadeOrForesterMoveOrder = (unitId: number, targetSectorId: n
     }
     // (point1[0] + point2[0]) / 2
     const calculateMidpoint = (point1: number[], point2: number[]): { longitude: number, latitude: number } => {
-      console.log(Decimal.add(0.1, 0.2).toNumber());
+      // console.log(Decimal.add(0.1, 0.2).toNumber());
+
+      // ### PREV SOLUTION ###
+      // return {
+      //   longitude: Decimal.add(point1[0], point2[0]).dividedBy(2).toNumber(),
+      //   latitude:  Decimal.add(point1[1], point2[1]).dividedBy(2).toNumber()
+      // };
+      // ### PREV SOLUTION ###
+
       return {
-        longitude: Decimal.add(point1[0], point2[0]).dividedBy(2).toNumber(),
-        latitude:  Decimal.add(point1[1], point2[1]).dividedBy(2).toNumber()
-      };
+        longitude:  getRandomIntInclusive(point1[0], point2[0]),
+        latitude:   getRandomIntInclusive(point1[1], point2[1])
+      }
+
       // return {
       //   longitude: point1[0], //lewy dolny
       //   latitude:  point1[1]

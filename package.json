@@ -1,7 +1,19 @@
 {
   "name": "fire-visualization",
   "version": "1.0.0",
-  "description": "",
+  "description": "Install all necessary dependencies by running:",
+  "keywords": [],
+  "homepage": "https://github.com/Fire-Protection-System/fire-visualization#readme",
+  "bugs": {
+    "url": "https://github.com/Fire-Protection-System/fire-visualization/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fire-Protection-System/fire-visualization.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
   "main": "electron.js",
   "scripts": {
     "postinstall": "patch-package",
@@ -12,9 +24,6 @@
     "serve": "concurrently \"webpack serve --no-open --mode development\" \"wait-on tcp:8080 && MODE=development electron .\"",
     "serve-windows": "concurrently \"webpack serve --no-open --mode development\" \"wait-on tcp:8080 && cross-env MODE=development ./node_modules/.bin/electron .\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@ant-design/colors": "^7.0.2",
     "@ant-design/icons": "^5.3.6",
