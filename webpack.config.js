@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   entry: './src/index.tsx',
@@ -32,9 +33,10 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './src/index.html',
     }),
+    new Dotenv(),
     new webpack.DefinePlugin({
       'process.env.MODE': JSON.stringify(process.env.MODE),
-      'process.env.REACT_APP_VERSION': JSON.stringify(process.env.REACT_APP_VERSION),
+      'process.env.REACT_APP_VERSION': JSON.stringify(process.env.REACT_APP_VERSION)
     }),
   ],
 };

@@ -7,6 +7,7 @@ import { Region } from '../geography';
 import { linspace } from '../../utils/linspace';
 import { ProcessedSector } from '../processedSector';
 import { isPointInBounds } from '../../utils/isPointInBounds';
+import { RecommendedAction } from '../../store/reducers/serverCommunicationReducers';
 
 export interface Forest {
   forestId: number;
@@ -22,6 +23,7 @@ export interface Configuration extends Forest {
   cameras: Camera[];
   fireBrigades: FireBrigade[];
   foresterPatrols: ForesterPatrol[];
+  recommendations: Record<number, RecommendedAction>; 
 }
 
 export type ConfigurationUpdate = {
