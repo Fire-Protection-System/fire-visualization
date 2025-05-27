@@ -94,7 +94,7 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       onopen: async (response: Response): Promise<void> => {
         console.log("SSE connection opened successfully");
       },
-      
+
       onmessage: (event) => {
         try {
           const parsedData = JSON.parse(event.data);
@@ -111,7 +111,7 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
             console.log("update config");
             dispatch(updateConfiguration({ configurationUpdate: parsedData }));
           }
-          
+
           if (parsedData.timestamp && parsedData.recommendedActions) {
             dispatch(updateRecommendation({
               timestamp: parsedData.timestamp,
@@ -132,6 +132,25 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       }
     });
   }
+}
+
+export const sendStopRequest = (): ThunkAction<void, RootState, unknown, AnyAction> => {
+   return async (dispatch: any, getState: () => RootState) => {
+    const state = getState();
+    const { serverCommunication, mapConfiguration } = state;
+    if (serverCommunication.isFetching == false) {
+      return;
+    }
+    dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: false }));
+
+    await fetch(`http://localhost:8181/stop-simulation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: "",
+    });
+    }
 }
 
 function getRandomIntInclusive(min: number, max: number) {
