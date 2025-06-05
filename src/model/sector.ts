@@ -14,6 +14,11 @@ export interface Sector {
    * [lng, lat][]
    */
   contours: [number, number][];
+  
+  fireLevel: number | null;
+  burnLevel: number | null;
+  extinguishLevel: number | null;
+
 }
 
 // TODO adjust this type
@@ -36,6 +41,11 @@ type SectorStateUpdate = {
   co2Concentration: number;
   pm2_5Concentration: number;
   timestamp: number | null; // TODO why this is here and why it is nullable?!
+
+  // Debug only
+  fireLevel: number | null;
+  burnLevel: number | null;
+  extinguishLevel: number | null;
 }
 
 interface SectorState {
@@ -46,6 +56,11 @@ interface SectorState {
   plantLitterMoisture: number;
   co2Concentration: number;
   pm2_5Concentration: number;
+
+  // Debug only
+  fireLevel: number | null;
+  burnLevel: number | null;
+  extinguishLevel: number | null;
 }
 
 export const Sector = {
@@ -96,6 +111,9 @@ export const getDefaultSector = (): Sector => {
       plantLitterMoisture: 26,
       co2Concentration: 18,
       pm2_5Concentration: 14,
+      fireLevel: 0,
+      burnLevel: 0, 
+      extinguishLevel: 0
     },
     contours: [],
   };

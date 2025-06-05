@@ -68,8 +68,6 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       sector.column -= 1;
     });
 
-    console.log(JSON.stringify(newConfiguration))
-
     // const newConfiguration = mapConfiguration.configuration;
 
     // serverCommunication.isFetching = true;
@@ -104,8 +102,6 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
             console.log("Aborted");
             return;
           }
-
-          console.log(parsedData);
 
           if (parsedData) {
             console.log("update config");
