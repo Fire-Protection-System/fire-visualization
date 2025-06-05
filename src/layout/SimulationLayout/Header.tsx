@@ -8,6 +8,7 @@ import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 
 import { StopSimulationButton } from '../../components/simulationButtons/StopSimulationButton';
 import AutoRecommendationSwitch from '../../components/simulationButtons/RunAutoSimulationSwitch';
+import DownloadSimulationConfigurationButton from '../../components/simulationButtons/DownloadSimulationConfugurationButton';
 
 import { AppBarStyled } from '../MainLayout/Header/AppBarStyled';
 
@@ -22,6 +23,7 @@ export const Header = () => {
     <Toolbar sx={{ justifyContent: 'end' }}>    
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <AutoRecommendationSwitch />
+        <DownloadSimulationConfigurationButton />
         <StopSimulationButton />
       </Box>
     </Toolbar>
