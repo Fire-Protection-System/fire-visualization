@@ -40,6 +40,7 @@ export const serverCommunicationSlice = createSlice({
   },
 });
 
+<<<<<<< HEAD
 export type RecommendedAction = {
   unitId: number;
   sectorId: number;
@@ -51,6 +52,8 @@ export type Recommendation = {
   priority: string;
 };
 
+=======
+>>>>>>> origin/main
 export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState, unknown, AnyAction> => {
   return async (dispatch: any, getState: () => RootState) => {
     const state = getState();
@@ -88,6 +91,7 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       },
       body: JSON.stringify(newConfiguration),
       signal: abortController.signal,
+<<<<<<< HEAD
 
       onopen: async (response: Response): Promise<void> => {
         console.log("SSE connection opened successfully");
@@ -98,10 +102,21 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
           const parsedData = JSON.parse(event.data);
           console.log('Event parsed successfully:', parsedData);
 
+=======
+      onopen: () => {
+        console.log("SSE connection opened successfully");
+      },
+      onmessage: (event) => {
+        console.log('Raw event data:', event.data);
+        try {
+          const newState = JSON.parse(event.data) as ConfigurationUpdate;
+          console.log('Event parsed successfully:', newState);
+>>>>>>> origin/main
           if (abortController.signal.aborted) {
             console.log("Aborted");
             return;
           }
+<<<<<<< HEAD
 
           if (parsedData) {
             console.log("update config");
@@ -116,6 +131,9 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
             }));
           }
 
+=======
+          dispatch(updateConfiguration({ configurationUpdate: newState }));
+>>>>>>> origin/main
         } catch (parseError) {
           console.error('Error parsing event data:', parseError, 'Raw data:', event.data);
         }
