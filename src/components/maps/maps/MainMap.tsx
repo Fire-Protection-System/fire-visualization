@@ -104,7 +104,7 @@ export const MainMap = () => {
         <Box sx={{ height: '800px' /* TODO fix fixed height */ }}>
           <Map
             id="main-map"
-            mapId={window.env.GOOGLE_MAP_ID_MAIN_MAP}
+            mapId={process.env.GOOGLE_MAP_ID_MAIN_MAP}
             // defaultBounds={bounds}
             onDragstart={() => {
               // hide tooltip when dragging the map

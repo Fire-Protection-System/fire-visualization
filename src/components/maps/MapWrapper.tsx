@@ -6,5 +6,5 @@ type MapWrapperProps = {
 };
 
 export const MapWrapper = ({ children }: MapWrapperProps) => {
-  return <APIProvider apiKey={window.env.GOOGLE_API_KEY}>{children}</APIProvider>;
+  return <APIProvider apiKey={process.env.GOOGLE_API_KEY}>{children}</APIProvider>;
 };

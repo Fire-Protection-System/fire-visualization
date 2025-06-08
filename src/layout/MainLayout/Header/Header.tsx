@@ -1,13 +1,13 @@
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { AppBar, IconButton, Toolbar, useMediaQuery } from '@mui/material';
+import { AppBar, Box, IconButton, Toolbar, useMediaQuery } from '@mui/material';
 
 // project import
 import { AppBarStyled } from './AppBarStyled';
 
 // assets
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-import { RunSimulationButton } from '../../../components/simulationButtons/RunSimulationButton';
+import { RunSimulationButton } from './../../../components/simulationButtons/RunSimulationButton';
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 
@@ -36,7 +36,11 @@ export const Header = ({ open, handleDrawerToggle }: HeaderProps) => {
       >
         {!open ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
       </IconButton>
-      <RunSimulationButton />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <RunSimulationButton />
+      </Box>
+
     </Toolbar>
   );
 

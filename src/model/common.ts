@@ -1,4 +1,4 @@
-import { MapLocation } from './geography';
+import type { MapLocation } from './geography';
 
 export const getDefaultMapLocation = (): MapLocation => ({
   longitude: 19.922539068744474,
