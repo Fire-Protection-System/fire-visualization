@@ -31,24 +31,11 @@ Install VSCode extension: __ESLint__. It should work out of the box with the ESL
 To run app in the development mode you just have to use:
 
 ```sh
-  npm run serve
+  npm run
 ```
 
 It will run `webpack` in the server mode with watching changes and then open electron app on each file save.
 
-# Production mode
-
-To run app in the production mode you have to firstly build it:
-
-```sh
-  npm run build
-```
-
-and then start electron app:
-
-```sh
-  npm run electron-start
-```
 
 # Example forest configurations
 
