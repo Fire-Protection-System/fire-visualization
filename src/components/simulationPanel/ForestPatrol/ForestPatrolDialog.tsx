@@ -6,7 +6,7 @@ import { Camera } from "../../../model/camera";
 import { FireBrigade } from "../../../model/FireBrigade";
 import { ForesterPatrol } from "../../../model/ForesterPatrol";
 import { Sensor } from "../../../model/sensor";
-import { getObjectsInSector } from "../../../utils/configuration/getObjectsInSector";
+import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
 import RenderSimulationItem from "../RenderSimulationItem";
 import { MapWrapper } from "../../maps/MapWrapper";
 import { MainMap } from "../../maps/maps/MainMap";

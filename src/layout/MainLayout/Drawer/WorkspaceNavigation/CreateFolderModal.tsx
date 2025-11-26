@@ -6,18 +6,13 @@ import { FileSystemNodes } from './WorkspaceNavigation';
 
 type CreateFolderModalProps = {
   isOpen: boolean;
-
   url: string;
-
   newFolderName: string | null;
   setNewFolderName: Dispatch<SetStateAction<string | null>>;
-
   nodesData: FileSystemNodes;
   selectedNode: FileSystemNode | null;
   setSelectedNode: (item: FileSystemNode) => void;
-
   handleCreateFolder: () => Promise<void>;
-
   closeModal: () => void;
 };
 

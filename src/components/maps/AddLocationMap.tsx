@@ -13,7 +13,7 @@ import {
   Position,
   ViewMode,
 } from '@deck.gl-community/editable-layers';
-import { useSelectedSectorLayer } from '../../hooks/maps/useSelectedSectorLayer';
+import { useSelectedSectorLayer } from './hooks/useSelectedSectorLayer';
 
 // MUI components
 import { MainCard } from '../MainCard';
@@ -23,7 +23,7 @@ import { Box, Button } from '@mui/material';
 import { MapLocation } from '../../model/geography';
 import { getDefaultMapLocation } from '../../model/common';
 import { Sector } from '../../model/sector';
-import { isPointInBounds } from '../../utils/isPointInBounds';
+import { isPointInBounds } from '@shared/utils/isPointInBounds';
 
 const parsePositionToMapLocation = (position: Position): MapLocation => ({
   longitude: position[0],

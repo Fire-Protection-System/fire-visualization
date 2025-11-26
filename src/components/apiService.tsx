@@ -1,6 +1,6 @@
 import { ApiDataNode } from '../model/FileSystemModel/ApiDataNode';
-import { camelize } from '../utils/camelize';
-import { snakeize } from '../utils/snakeize';
+import { camelize } from '@shared/utils/camelize';
+import { snakeize } from '@shared/utils/snakeize';
 
 export const getNodes = async (baseUrl: string) => {
   const response = await fetch(baseUrl + '/api/v1/nodes/');

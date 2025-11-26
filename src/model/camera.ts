@@ -1,4 +1,4 @@
-import { CameraMarker } from '../components/maps/CameraMarkers';
+import { CameraMarker } from '@features/maps';
 import { getDefaultMapLocation } from './common';
 import { MapLocation } from './geography';
 

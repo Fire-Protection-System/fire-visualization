@@ -4,9 +4,9 @@ import { Camera } from '../camera';
 import { FireBrigade, FireBrigadeUpdate } from '../FireBrigade';
 import { ForesterPatrol, ForesterPatrolUpdate } from '../ForesterPatrol';
 import { Region } from '../geography';
-import { linspace } from '../../utils/linspace';
+import { linspace } from '@shared/utils/linspace';
 import { ProcessedSector } from '../processedSector';
-import { isPointInBounds } from '../../utils/isPointInBounds';
+import { isPointInBounds } from '@shared/utils/isPointInBounds';
 import { RecommendedAction } from '../../store/reducers/serverCommunicationReducers';
 
 export interface Forest {

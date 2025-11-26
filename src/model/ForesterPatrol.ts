@@ -1,5 +1,4 @@
-import { ForesterPatrolBaseMarker } from '../components/maps/ForesterPatrolBaseMarkers';
-import { ForesterPatrolMarker } from '../components/maps/ForesterPatrolMarkers';
+import { ForesterPatrolBaseMarker, ForesterPatrolMarker } from '@features/maps';
 import { getDefaultMapLocation } from './common';
 import { MapLocation } from './geography';
 
