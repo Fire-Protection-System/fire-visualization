@@ -142,25 +142,7 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
           <Map />
         </DeckGL>
         <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
-          {!isLocationDrawn ? (
-            !isDrawing ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Enable selecting location
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Disable selecting location
-              </Button>
-            )
-          ) : (
+          {isLocationDrawn ? (
             <Button
               variant="contained"
               color="secondary"
@@ -169,6 +151,24 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
             >
               Clear selected location
             </Button>
+          ) : (
+            isDrawing ? (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={toggleDrawing}
+              >
+                Disable selecting location
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={toggleDrawing}
+              >
+                Enable selecting location
+              </Button>
+            )
           )}
         </Box>
       </Box>

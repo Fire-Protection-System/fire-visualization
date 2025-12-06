@@ -1,17 +1,13 @@
-import { Box, Button, Divider, List, ListItem, Typography } from "@mui/material";
+import { Box, Divider, List, ListItem, Typography } from "@mui/material";
 import RenderSimulationItem from "../RenderSimulationItem";
-import { FireBrigade } from "../../../model/FireBrigade";
-import { mock } from "node:test";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../store/reduxStore";
-import { useMemo } from "react";
 import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
 
 export default function FireBrigadeManagement() {
    const {
       configuration: mapConfiguration,
-      currentSectorId,
-      fileSystemNode,
+      currentSectorId
    } = useSelector((state: RootState) => state.mapConfiguration);
 
    if (currentSectorId === null) {

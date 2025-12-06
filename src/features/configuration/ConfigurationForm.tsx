@@ -41,7 +41,7 @@ export const ConfigurationForm: FC = () => {
 
   const [idx, setIdx] = useState<number | undefined>(undefined);
   useEffect(() => {
-    setIdx(currentSectorId !== null ? currentSectorId - 1 : undefined);
+    setIdx(currentSectorId === null ? undefined : currentSectorId - 1);
   }, [currentSectorId]);
 
   const closeCreateSensorModal = () => {

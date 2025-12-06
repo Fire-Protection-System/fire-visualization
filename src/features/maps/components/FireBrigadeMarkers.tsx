@@ -68,14 +68,5 @@ export const FireBrigadeMarkers = () => {
 };
 
 const fireBrigadeStateToEmoji = (fireBrigadeState: FireBrigadeState) => {
-  switch (fireBrigadeState) {
-    case 'AVAILABLE':
-      return '🚒';
-    case 'TRAVELLING':
-      return '🚒';
-    case 'EXTINGUISHING':
-      return '🚒';
-    default:
-      return '🚒';
-  }
+  return '🚒';
 };

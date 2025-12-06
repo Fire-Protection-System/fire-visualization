@@ -20,8 +20,6 @@ export type ForesterPatrolUpdate = {
   // timestamp: string; // TODO change to number
   action: ForesterPatrolState;
   state: ForesterPatrolState;
-  // baseLocation: MapLocation;
-  // currentLocation: MapLocation;
   location: MapLocation;
   sectorId: number;
 };

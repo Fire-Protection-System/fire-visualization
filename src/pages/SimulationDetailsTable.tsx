@@ -17,9 +17,7 @@ export default function SimulationDetailsTable() {
     });
 
     const {
-        configuration: mapConfiguration,
-        currentSectorId,
-        fileSystemNode,
+        configuration: mapConfiguration
     } = mapConfigState || {};
 
     const sectors = mapConfiguration?.sectors || [];
@@ -44,19 +42,19 @@ export default function SimulationDetailsTable() {
                             <TableRow key={sector?.sectorId || `sector-${index}`}>
                                 <TableCell>{sector?.sectorId ?? 'N/A'}</TableCell>
                                 <TableCell>
-                                    {sector?.initialState?.fireLevel !== undefined
-                                        ? sector.initialState.fireLevel.toFixed(2)
-                                        : '0.00'}
+                                    {sector?.initialState?.fireLevel === undefined
+                                        ? '0.00'
+                                        : sector.initialState.fireLevel.toFixed(2)}
                                 </TableCell>
                                 <TableCell>
                                     {sector?.initialState?.burnLevel !== undefined
-                                        ? sector.initialState.burnLevel.toFixed(2)
-                                        : '0.00'}
+                                        ? '0.00'
+                                        : sector.initialState.burnLevel.toFixed(2)}
                                 </TableCell>
                                 <TableCell>
                                     {sector?.initialState?.extinguishLevel !== undefined
-                                        ? sector.initialState.extinguishLevel.toFixed(2)
-                                        : '0.00'}
+                                        ? '0.00'
+                                        : sector.initialState.extinguishLevel.toFixed(2)}
                                 </TableCell>
                             </TableRow>
                         ))}

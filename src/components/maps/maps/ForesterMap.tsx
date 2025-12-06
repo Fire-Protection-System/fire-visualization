@@ -18,15 +18,10 @@ import { useForestBorderLayer } from '../hooks/useForestBorderLayer';
 import { useSectorsLayer } from '../hooks/useSectorsLayer';
 import { useSelectedSectorLayer, useTargetSectorLayer } from '../hooks/useSelectedSectorLayer';
 import { useOnSectorChange } from '../hooks/useOnSectorChange';
-import { useOnTooltipChange } from '../hooks/useOnTooltipChange';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/reduxStore';
 import { setCurrentSectorId } from '../../../store/reducers/mapConfigurationSlice';
-import { SensorMarkers } from '../SensorMarkers';
-import { CameraMarkers } from '../CameraMarkers';
 import { ForesterPatrolMarkers } from '../ForesterPatrolMarkers';
-import { FireBrigadeMarkers } from '../FireBrigadeMarkers';
-import { FireBrigadeBaseMarkers } from '../FireBrigadeBaseMarkers';
 import { ForesterPatrolBaseMarkers } from '../ForesterPatrolBaseMarkers';
 
 type Props = {
@@ -61,10 +56,6 @@ export const ForesterMap = (props: Props) => {
    const targetSectorLayer = useTargetSectorLayer(
       mapConfiguration.sectors.find(({ sectorId }) => sectorId === props.targetSectorId && sectorId != currentSectorId) ,
    );
-   //   if (props.disableTooltip == false || props.disableTooltip == undefined) {
-   //     useOnTooltipChange(setTooltip);
-   //   }
-
 
    const onSectorChange = useCallback(
       (sectorId: number | null) => {

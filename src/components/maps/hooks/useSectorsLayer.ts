@@ -93,7 +93,7 @@ export const useSectorsLayer = ({ sectors }: Configuration, disableOnHover?: boo
           // check the currently shown tooltip
           // if the sector is the same do not update the tooltip
           const oldTooltip = document.getElementById('tooltip-sector');
-          if (oldTooltip && oldTooltip.className === `sector-${sector.sectorId}`) return;
+          if (oldTooltip?.className === `sector-${sector.sectorId}`) return;
 
           const sectorCenterCoords = {
             longitude:

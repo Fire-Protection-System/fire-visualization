@@ -1,9 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useDispatch, useSelector} from 'react-redux';
+import { useSelector} from 'react-redux';
 import { Button } from '@mui/material';
-import { ThunkDispatch } from '@reduxjs/toolkit';
-import { AnyAction } from 'redux';
-
 import { RootState } from '././../../store/reduxStore';
 
 const DownloadSimulationConfigurationButton: React.FC = () => {
@@ -28,7 +24,7 @@ const DownloadSimulationConfigurationButton: React.FC = () => {
     document.body.appendChild(link);
     link.click();
   
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(href);
   }
   

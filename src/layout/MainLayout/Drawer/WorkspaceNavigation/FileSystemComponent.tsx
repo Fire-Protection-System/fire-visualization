@@ -79,7 +79,7 @@ export const FileSystemComponent: React.FC<Props> = ({
               component="div"
               disablePadding
             >
-              {item.contents && item.contents?.map((childItem) => renderFileOrFolder(childItem, level + 1))}
+              {item?.contents?.map((childItem) => renderFileOrFolder(childItem, level + 1))}
             </List>
           </Collapse>
         </Box>

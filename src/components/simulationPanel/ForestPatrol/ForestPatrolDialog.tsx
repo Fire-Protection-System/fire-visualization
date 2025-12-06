@@ -1,16 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../../store/reduxStore";
 import { useState } from "react";
-import { Button, Dialog, DialogTitle, DialogContent, Divider, List, ListItem, DialogActions } from "@mui/material";
-import { Camera } from "../../../model/camera";
-import { FireBrigade } from "../../../model/FireBrigade";
-import { ForesterPatrol } from "../../../model/ForesterPatrol";
-import { Sensor } from "../../../model/sensor";
-import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
-import RenderSimulationItem from "../RenderSimulationItem";
-import { MapWrapper } from "../../maps/MapWrapper";
-import { MainMap } from "../../maps/maps/MainMap";
-import { FireBrigadeMap } from "../../maps/maps/FireBrigadeMap";
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { MapWrapper } from "../../maps/MapWrapper";;
 import { sendBrigadeOrForesterMoveOrder } from "../../../store/reducers/serverCommunicationReducers";
 import { ForesterMap } from "../../maps/maps/ForesterMap";
 
@@ -20,7 +12,6 @@ type Props = {
 
 export default function ForestPatrolDialog(props: Props) {
    const {
-      configuration: mapConfiguration,
       currentSectorId,
    } = useSelector((state: RootState) => state.mapConfiguration);
 

@@ -43,7 +43,7 @@ const constructId = (propertyName: string, objectName?: string, idx?: number) =>
 };
 
 const constructName = (propertyName: string, objectName?: string, idx?: number): string => {
-  const indexingPostfix = idx != undefined ? `[${idx}]` : undefined;
+  const indexingPostfix = idx == undefined ? undefined : `[${idx}]`;
   const result = conditionalConcat('.', conditionalConcat('', objectName, indexingPostfix), propertyName);
   return result ?? '';
 };

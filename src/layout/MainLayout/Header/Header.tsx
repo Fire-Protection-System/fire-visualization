@@ -34,7 +34,7 @@ export const Header = ({ open, handleDrawerToggle }: HeaderProps) => {
         color="secondary"
         sx={{ color: 'text.primary', bgcolor: open ? iconBackColorOpen : iconBackColor, ml: { xs: 0, lg: -2 } }}
       >
-        {!open ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        {open ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
       </IconButton>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -57,15 +57,15 @@ export const Header = ({ open, handleDrawerToggle }: HeaderProps) => {
 
   return (
     <>
-      {!matchDownMD ? (
+      {matchDownMD ? (
+        <AppBar {...appBar}>{mainHeader}</AppBar>
+      ) : (
         <AppBarStyled
           open={open}
           {...appBar}
         >
           {mainHeader}
         </AppBarStyled>
-      ) : (
-        <AppBar {...appBar}>{mainHeader}</AppBar>
       )}
     </>
   );
