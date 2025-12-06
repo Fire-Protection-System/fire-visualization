@@ -17,9 +17,7 @@ export default function ActorsDetailsTable() {
     });
 
     const {
-        configuration: mapConfiguration,
-        currentSectorId,
-        fileSystemNode,
+        configuration: mapConfiguration
     } = mapConfigState || {};
 
     const actors = mapConfiguration?.fireBrigades || [];
@@ -42,9 +40,9 @@ export default function ActorsDetailsTable() {
                             <TableRow key={actor?.fireBrigadeId || `sector-${index}`}>
                                 <TableCell>{actor?.fireBrigadeId ?? 'N/A'}</TableCell>
                                 <TableCell>
-                                    {actor?.state !== undefined
-                                        ? actor?.state
-                                        : 'UNDEFINED'}
+                                    {actor?.state === undefined
+                                        ? 'UNDEFINED'
+                                        : actor?.state}
                                 </TableCell>
                             </TableRow>
                         ))}

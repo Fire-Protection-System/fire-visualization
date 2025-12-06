@@ -1,12 +1,12 @@
 import { Button } from "@mui/material";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../../../store/reduxStore";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "../../../store/reduxStore";
 import { sendBrigadeOrForesterMoveToBaseOrder } from "../../../store/reducers/serverCommunicationReducers";
 
 type Props = {
    fireBrigadeID: number;
 }
-export default function MoveToBaseButton(props: Props) {
+export default function MoveToBaseButton(props: Readonly<Props>) {
    const dispatch: AppDispatch = useDispatch();
    
    const handleClick = () => {

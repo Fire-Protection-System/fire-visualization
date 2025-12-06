@@ -11,9 +11,18 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+    alias: {
+      '@shared': path.resolve(__dirname, 'src/shared/'),
+      '@features': path.resolve(__dirname, 'src/features/'),
+      '@app': path.resolve(__dirname, 'src/app/'),
+    },
   },
   module: {
     rules: [
+      {
+        test: /\.m?js$/,
+        resolve: { fullySpecified: false },
+      },
       {
         test: /\.(ts|tsx)$/,
         exclude: /node_modules/,
@@ -36,7 +45,7 @@ module.exports = {
     new Dotenv(),
     new webpack.DefinePlugin({
       'process.env.MODE': JSON.stringify(process.env.MODE),
-      'process.env.REACT_APP_VERSION': JSON.stringify(process.env.REACT_APP_VERSION)
+      'process.env.REACT_APP_VERSION': JSON.stringify(process.env.REACT_APP_VERSION),
     }),
   ],
 };

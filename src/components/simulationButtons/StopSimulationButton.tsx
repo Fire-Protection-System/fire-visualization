@@ -1,16 +1,13 @@
 import { Button } from '@mui/material';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store/reduxStore';
-import { ConfigurationUpdate, isDefaultConfiguration } from '../../model/configuration/configuration';
-import { updateConfiguration } from '../../store/reducers/mapConfigurationSlice';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useNavigate } from 'react-router-dom';
 import { abortConnection, sendStopRequest } from '../../store/reducers/serverCommunicationReducers';
 
 //this button probably isn't even used, nor stopSimulation is
 export const StopSimulationButton = () => {
-  const { configuration: mapConfiguration } = useSelector((state: RootState) => state.mapConfiguration);
+  useSelector((state: RootState) => state.mapConfiguration);
   const dispatch: AppDispatch = useDispatch();
   
   const navigate = useNavigate();  

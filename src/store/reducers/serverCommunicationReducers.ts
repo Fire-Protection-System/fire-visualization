@@ -25,8 +25,6 @@ export const serverCommunicationSlice = createSlice({
   initialState,
   reducers: {
     abortConnection(state) {
-      // state.abortController.abort();
-      // state.abortController = new AbortController();
       if (abortController.signal.aborted) {
         return;
       }
@@ -59,18 +57,13 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
       return;
     }
 
-    // console.log(mapConfiguration.configuration);
+    const newConfiguration: Configuration = structuredClone(mapConfiguration.configuration);
 
-    const newConfiguration: Configuration = JSON.parse(JSON.stringify(mapConfiguration.configuration));
-
-    newConfiguration.sectors.forEach((sector) => {
+    for (const sector of newConfiguration.sectors) {
       sector.row -= 1;
       sector.column -= 1;
-    });
+    };
 
-    // const newConfiguration = mapConfiguration.configuration;
-
-    // serverCommunication.isFetching = true;
     dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: true }));
 
     await fetch(`http://localhost:8181/send-simulation-request`, {      
@@ -133,8 +126,8 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
 export const sendStopRequest = (): ThunkAction<void, RootState, unknown, AnyAction> => {
    return async (dispatch: any, getState: () => RootState) => {
     const state = getState();
-    const { serverCommunication, mapConfiguration } = state;
-    if (serverCommunication.isFetching == false) {
+    const { serverCommunication } = state;
+    if (!serverCommunication.isFetching) {
       return;
     }
     dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: false }));
@@ -169,28 +162,10 @@ export const sendBrigadeOrForesterMoveOrder = (unitId: number, targetSectorId: n
     }
     // (point1[0] + point2[0]) / 2
     const calculateMidpoint = (point1: number[], point2: number[]): { longitude: number, latitude: number } => {
-      // console.log(Decimal.add(0.1, 0.2).toNumber());
-
-      // ### PREV SOLUTION ###
-      // return {
-      //   longitude: Decimal.add(point1[0], point2[0]).dividedBy(2).toNumber(),
-      //   latitude:  Decimal.add(point1[1], point2[1]).dividedBy(2).toNumber()
-      // };
-      // ### PREV SOLUTION ###
-
       return {
         longitude:  getRandomIntInclusive(point1[0], point2[0]),
         latitude:   getRandomIntInclusive(point1[1], point2[1])
       }
-
-      // return {
-      //   longitude: point1[0], //lewy dolny
-      //   latitude:  point1[1]
-      // };
-      // return {
-      //   longitude: point2[0], //lewy górny
-      //   latitude:  point2[1]
-      // };
     };
 
     console.log(targetSector.contours);

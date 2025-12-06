@@ -1,12 +1,11 @@
 import { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { Modal, Typography, TextField, Stack, Button, Box } from '@mui/material';
 import { Form, Formik, FormikProps } from 'formik';
-import { ForestFormPart } from '../../../../components/configuration/ForestConfiguration';
+import { ForestFormPart } from '@features/configuration/ForestConfiguration';
 import { FileSystemNodes } from './WorkspaceNavigation';
 import { FileSystemNode } from '../../../../model/FileSystemModel/FileSystemNode';
 import { Configuration, getDefaultConfiguration } from '../../../../model/configuration/configuration';
-import { MapWrapper } from '../../../../components/maps/MapWrapper';
-import { NewConfigurationMap } from '../../../../components/maps/NewConfigurationMap';
+import { MapWrapper, NewConfigurationMap } from '@features/maps';
 
 type CreateConfigurationModalProps = {
   isOpen: boolean;

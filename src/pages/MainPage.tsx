@@ -2,11 +2,11 @@
 import { Grid } from '@mui/material';
 
 // maps
-import { MapWrapper } from '../components/maps/MapWrapper';
+import { MapWrapper } from '@features/maps';
 import { MainMap } from '../components/maps/maps/MainMap';
 
 // configuration
-import { ConfigurationForm } from '../components/configuration/ConfigurationForm';
+import { ConfigurationForm } from '@features/configuration/ConfigurationForm';
 
 export const MainPage = () => {
   return (

@@ -1,11 +1,8 @@
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { AppBar, IconButton, Toolbar, useMediaQuery } from '@mui/material';
-import { Box } from '@mui/material';
+import { AppBar, Toolbar, useMediaQuery, Box } from '@mui/material';
 
 // assets
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-
 import { StopSimulationButton } from '../../components/simulationButtons/StopSimulationButton';
 import AutoRecommendationSwitch from '../../components/simulationButtons/RunAutoSimulationSwitch';
 import DownloadSimulationConfigurationButton from '../../components/simulationButtons/DownloadSimulationConfugurationButton';
@@ -42,14 +39,14 @@ export const Header = () => {
 
   return (
     <>
-      {!matchDownMD ? (
+      {matchDownMD ? (
+        <AppBar {...appBar}>{mainHeader}</AppBar>
+      ) : (
         <AppBarStyled          
           {...appBar}
         >
           {mainHeader}
         </AppBarStyled>
-      ) : (
-        <AppBar {...appBar}>{mainHeader}</AppBar>
       )}
     </>
   );

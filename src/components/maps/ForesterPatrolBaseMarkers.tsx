@@ -7,7 +7,7 @@ import type { Marker } from '@googlemaps/markerclusterer';
 
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
-import { ForesterPatrol, ForesterPatrolBase, ForesterPatrolState } from '../../model/ForesterPatrol';
+import { ForesterPatrolBase } from '../../model/ForesterPatrol';
 
 export type ForesterPatrolBaseMarker = {
   location: google.maps.LatLngLiteral;

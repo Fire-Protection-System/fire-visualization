@@ -23,7 +23,7 @@ export const MainDrawer = ({ open, handleDrawerToggle, window }: MainDrawerProps
   const matchDownMD = useMediaQuery(theme.breakpoints.down('lg'));
 
   // responsive drawer container
-  const container = window !== undefined ? () => window().document.body : undefined;
+  const container = window === undefined ? undefined : () => window().document.body;
 
   // header content
   const drawerContent = useMemo(() => <DrawerContent />, []);
@@ -34,14 +34,7 @@ export const MainDrawer = ({ open, handleDrawerToggle, window }: MainDrawerProps
       sx={{ flexShrink: { md: 0 }, zIndex: 1300 }}
       aria-label="mailbox folders"
     >
-      {!matchDownMD ? (
-        <MiniDrawerStyled
-          variant="permanent"
-          open={open}
-        >
-          {drawerContent}
-        </MiniDrawerStyled>
-      ) : (
+      {matchDownMD ? (
         <Drawer
           container={container}
           variant="temporary"
@@ -61,6 +54,13 @@ export const MainDrawer = ({ open, handleDrawerToggle, window }: MainDrawerProps
         >
           {open && drawerContent}
         </Drawer>
+      ) : (
+        <MiniDrawerStyled
+          variant="permanent"
+          open={open}
+        >
+          {drawerContent}
+        </MiniDrawerStyled>
       )}
     </Box>
   );

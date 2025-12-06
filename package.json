@@ -14,7 +14,7 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "src/index.tsx",
+  "main": "src/app/index.tsx",
   "scripts": {
     "postinstall": "patch-package",
     "start": "webpack serve --open --mode development",

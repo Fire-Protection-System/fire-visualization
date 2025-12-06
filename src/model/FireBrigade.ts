@@ -1,5 +1,4 @@
-import { FireBrigadeBaseMarker } from '../components/maps/FireBrigadeBaseMarkers';
-import { FireBrigadeMarker } from '../components/maps/FireBrigadeMarkers';
+import { FireBrigadeBaseMarker, FireBrigadeMarker } from '@features/maps';
 import { getDefaultMapLocation } from './common';
 import { MapLocation } from './geography';
 

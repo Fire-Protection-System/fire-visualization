@@ -110,25 +110,7 @@ export const NewConfigurationMap = () => {
           <Map />
         </DeckGL>
         <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
-          {!areForestBoundsDrawn ? (
-            !isDrawing ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Start Drawing
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Stop Drawing
-              </Button>
-            )
-          ) : (
+          {areForestBoundsDrawn ? (
             <Button
               variant="contained"
               color="secondary"
@@ -137,6 +119,24 @@ export const NewConfigurationMap = () => {
             >
               Clear Forest Bounds
             </Button>
+          ) : (
+            isDrawing ? (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={toggleDrawing}
+              >
+                Stop Drawing
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={toggleDrawing}
+              >
+                Start Drawing
+              </Button>
+            )
           )}
         </Box>
       </Box>

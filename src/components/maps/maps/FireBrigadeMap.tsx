@@ -14,17 +14,13 @@ import { Grid, Box, Typography } from '@mui/material';
 import { MainCard } from '../../MainCard';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Configuration } from '../../../model/configuration/configuration';
-import { useForestBorderLayer } from '../../../hooks/maps/useForestBorderLayer';
-import { useSectorsLayer } from '../../../hooks/maps/useSectorsLayer';
-import { useSelectedSectorLayer, useTargetSectorLayer } from '../../../hooks/maps/useSelectedSectorLayer';
-import { useOnSectorChange } from '../../../hooks/maps/useOnSectorChange';
-import { useOnTooltipChange } from '../../../hooks/maps/useOnTooltipChange';
+import { useForestBorderLayer } from '../hooks/useForestBorderLayer';
+import { useSectorsLayer } from '../hooks/useSectorsLayer';
+import { useSelectedSectorLayer, useTargetSectorLayer } from '../hooks/useSelectedSectorLayer';
+import { useOnSectorChange } from '../hooks/useOnSectorChange';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/reduxStore';
 import { setCurrentSectorId } from '../../../store/reducers/mapConfigurationSlice';
-import { SensorMarkers } from '../SensorMarkers';
-import { CameraMarkers } from '../CameraMarkers';
-import { ForesterPatrolMarkers } from '../ForesterPatrolMarkers';
 import { FireBrigadeMarkers } from '../FireBrigadeMarkers';
 import { FireBrigadeBaseMarkers } from '../FireBrigadeBaseMarkers';
 
@@ -60,10 +56,6 @@ export const FireBrigadeMap = (props: Props) => {
    const targetSectorLayer = useTargetSectorLayer(
       mapConfiguration.sectors.find(({ sectorId }) => sectorId === props.targetSectorId && sectorId != currentSectorId) ,
    );
-   //   if (props.disableTooltip == false || props.disableTooltip == undefined) {
-   //     useOnTooltipChange(setTooltip);
-   //   }
-
 
    const onSectorChange = useCallback(
       (sectorId: number | null) => {

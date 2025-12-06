@@ -39,7 +39,7 @@ export const mapConfigurationSlice = createSlice({
     setCurrentSectorId: (state, action) => {
       const { currentSectorId: prevSectorId } = state;
       const { currentSectorId: nextSectorId } = action.payload;
-      state.currentSectorId = prevSectorId !== nextSectorId ? nextSectorId : null;
+      state.currentSectorId = prevSectorId === nextSectorId ? null : nextSectorId;
     },
     setFileSystemNode: (state, action) => {
       const { fileSystemNode } = action.payload;

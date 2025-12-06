@@ -1,4 +1,4 @@
-import { Button, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { ReactNode } from "react";
 import { Camera, isCamera } from "../../model/camera";
 import { FireBrigade } from "../../model/FireBrigade";
@@ -14,7 +14,7 @@ type Props = {
    object: Sensor | Camera | FireBrigade | ForesterPatrol;  
 }
 
-export default function RenderSimulationItem({object}: Props): ReactNode {
+export default function RenderSimulationItem({object}: Readonly<Props>): ReactNode {
    if (isSensor(object)) {
       return (
          <>

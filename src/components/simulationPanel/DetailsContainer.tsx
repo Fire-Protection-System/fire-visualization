@@ -1,18 +1,17 @@
-import { Button, Divider, List, ListItem, ListItemText, Typography } from "@mui/material";
+import { Button, Divider, List, ListItem } from "@mui/material";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/reduxStore";
 
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { ReactNode, useState } from "react";
-import { getObjectsInSector } from "../../utils/configuration/getObjectsInSector";
-import { Camera, isCamera } from "../../model/camera";
+import { useState } from "react";
+import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
+import { Camera } from "../../model/camera";
 import { FireBrigade } from "../../model/FireBrigade";
-import { ForesterPatrol, isForesterPatrol } from "../../model/ForesterPatrol";
-import { Sensor, isSensor } from "../../model/sensor";
+import { ForesterPatrol } from "../../model/ForesterPatrol";
+import { Sensor } from "../../model/sensor";
 import RenderSimulationItem from "./RenderSimulationItem";
 
 type Props = {
@@ -23,8 +22,7 @@ const DetailsContainer = (props: Props) => {
 
    const {
       configuration: mapConfiguration,
-      currentSectorId,
-      fileSystemNode,
+      currentSectorId
    } = useSelector((state: RootState) => state.mapConfiguration);
 
    const [open, setOpen] = useState(false);
@@ -84,7 +82,7 @@ const DetailsContainer = (props: Props) => {
                                  },
                               }}
                            >
-                              {/* {renderItem(obj)} */}
+                              { }
                               <RenderSimulationItem object={obj} />
                            </ListItem>
                         ))}

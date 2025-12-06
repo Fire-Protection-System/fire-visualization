@@ -1,4 +1,4 @@
-import { SensorMarker } from '../components/maps/SensorMarkers';
+import { SensorMarker } from '@features/maps';
 import { getDefaultMapLocation } from './common';
 import { MapLocation } from './geography';
 
