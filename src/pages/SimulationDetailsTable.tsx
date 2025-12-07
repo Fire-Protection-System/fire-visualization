@@ -44,17 +44,17 @@ export default function SimulationDetailsTable() {
                                 <TableCell>
                                     {sector?.initialState?.fireLevel === undefined
                                         ? '0.00'
-                                        : sector.initialState.fireLevel.toFixed(2)}
+                                        : sector.initialState.fireLevel?.toFixed(2)}
                                 </TableCell>
                                 <TableCell>
-                                    {sector?.initialState?.burnLevel !== undefined
+                                    {sector?.initialState?.burnLevel === undefined
                                         ? '0.00'
-                                        : sector.initialState.burnLevel.toFixed(2)}
+                                        : sector.initialState.burnLevel?.toFixed(2)}
                                 </TableCell>
                                 <TableCell>
-                                    {sector?.initialState?.extinguishLevel !== undefined
+                                    {sector?.initialState?.extinguishLevel === undefined
                                         ? '0.00'
-                                        : sector.initialState.extinguishLevel.toFixed(2)}
+                                        : sector.initialState.extinguishLevel?.toFixed(2)}
                                 </TableCell>
                             </TableRow>
                         ))}

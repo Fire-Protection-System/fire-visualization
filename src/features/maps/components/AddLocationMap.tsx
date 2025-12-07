@@ -112,6 +112,39 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
 
   const selectedSectorLayer = useSelectedSectorLayer(currentSector);
 
+  const getButtons = () => {
+    if (isLocationDrawn) {
+      return (<Button
+        variant="contained"
+        color="secondary"
+        onClick={handleClearSelectedLocation}
+        disabled={!isLocationDrawn}
+      >
+        Clear selected location
+      </Button>);
+    }
+    else if (isDrawing) {
+      return (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={toggleDrawing}
+        >
+          Disable selecting location
+        </Button>
+      );
+    }
+    return (
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={toggleDrawing}
+      >
+        Enable selecting location
+      </Button>
+    );
+  }
+
   return (
     <MainCard
       hasContent={false}
@@ -124,7 +157,7 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
           layers={[selectedSectorLayer, drawLocationLayer]}
           onViewStateChange={limitTiltRange}
           onAfterRender={() => {
-            if (!selectedSectorLayer || !selectedSectorLayer.isLoaded || !currentSector) return;
+            if (!selectedSectorLayer?.isLoaded || !currentSector) return;
 
             const viewport = selectedSectorLayer.context.viewport as WebMercatorViewport;
 
@@ -142,34 +175,7 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
           <Map />
         </DeckGL>
         <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
-          {isLocationDrawn ? (
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleClearSelectedLocation}
-              disabled={!isLocationDrawn}
-            >
-              Clear selected location
-            </Button>
-          ) : (
-            isDrawing ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Disable selecting location
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Enable selecting location
-              </Button>
-            )
-          )}
+          {getButtons()}
         </Box>
       </Box>
     </MainCard>

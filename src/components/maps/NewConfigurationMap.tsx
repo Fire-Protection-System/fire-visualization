@@ -95,6 +95,40 @@ export const NewConfigurationMap = () => {
     setIsDrawing(false);
   };
 
+  const getButtons = () => {
+    if (areForestBoundsDrawn) {
+      return (<Button
+        variant="contained"
+        color="secondary"
+        onClick={handleClearPolygon}
+        disabled={!areForestBoundsDrawn}
+      >
+        Clear Forest Bounds
+      </Button>)
+    }
+    else if (isDrawing) {
+      return (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={toggleDrawing}
+        >
+          Stop Drawing
+        </Button>
+      )
+    }
+
+    return (
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={toggleDrawing}
+      >
+        Start Drawing
+      </Button>
+    )
+  }
+
   return (
     <MainCard
       hasContent={false}
@@ -110,34 +144,7 @@ export const NewConfigurationMap = () => {
           <Map />
         </DeckGL>
         <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
-          {areForestBoundsDrawn ? (
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleClearPolygon}
-              disabled={!areForestBoundsDrawn}
-            >
-              Clear Forest Bounds
-            </Button>
-          ) : (
-            isDrawing ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Stop Drawing
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Start Drawing
-              </Button>
-            )
-          )}
+          {getButtons()}
         </Box>
       </Box>
     </MainCard>

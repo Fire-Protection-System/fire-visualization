@@ -10,7 +10,7 @@ type Props = {
    forestPatrolID: number;
 }
 
-export default function ForestPatrolDialog(props: Props) {
+export default function ForestPatrolDialog(props: Readonly<Props>) {
    const {
       currentSectorId,
    } = useSelector((state: RootState) => state.mapConfiguration);

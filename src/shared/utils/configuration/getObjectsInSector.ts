@@ -6,7 +6,7 @@ export const getObjectsInSector = <T extends { location?: { latitude: number; lo
    sector: Sector,
    objects: T[] = [],
 ): T[] => {
-   if (!sector || !sector.contours || sector.contours.length === 0) return [];
+   if (!sector?.contours || sector.contours.length === 0) return [];
 
    const sectorBounds = Sector.getBoundsFromContours(sector);
 
