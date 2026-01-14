@@ -7,7 +7,7 @@ import {
   ItemFormPartProps,
 } from '../configuration';
 import { useFormikContext } from 'formik';
-import { Configuration } from '../../../model/configuration/configuration';
+import { Configuration } from '../../../model/configuration';
 import { FireBrigade, FireBrigadeStates, getDefaultFireBrigade } from '../../../model/FireBrigade';
 import { Typography } from '@mui/material';
 import { Booleanify } from '@shared/utils/Booleanify';
@@ -21,7 +21,6 @@ export const FireBrigadeFormPart: FC<ItemFormPartProps<FireBrigade>> = ({ readon
     (fireBrig) => fireBrig.fireBrigadeId === fireBrigade.fireBrigadeId,
   );
   if (fireBrigadeIdx === -1) {
-    console.error(`FireBrigadeFormPart couldn't find index in the fire brigade list for fire brigade:`, fireBrigade);
     return (
       <Typography variant={'body1'}>
         Fire brigade {fireBrigade.fireBrigadeId} - couldn&apos;t find this fire brigade in the list

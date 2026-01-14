@@ -1,5 +1,5 @@
 import { createElement, CSSProperties, useMemo } from 'react';
-import { Configuration } from '../../../model/configuration/configuration';
+import { Configuration } from '../../../model/configuration';
 import { PolygonLayer } from '@deck.gl/layers';
 import { Sector } from '../../../model/sector';
 import { PickingInfo } from '@deck.gl/core';
@@ -19,7 +19,6 @@ const styles = {
 } satisfies Record<string, CSSProperties>;
 
 export const useSectorsLayer = ({ sectors }: Configuration, disableOnHover?: boolean, onClickHandler?: (sectorId: number) => void) => {
-  // console.log(sectors.map(sector => ({ ...sector, row: sector.row + 1, column: sector.column + 1 })))
 
   // const newSectors = sectors.map(sector => ({ ...sector, row: sector.row + 1, column: sector.column + 1 }))
   return useMemo(    
@@ -82,18 +81,28 @@ export const useSectorsLayer = ({ sectors }: Configuration, disableOnHover?: boo
         getLineWidth: 20,
         lineWidthMinPixels: 1,
         pickable: true,
+        // throttle tooltip updates and avoid re-emitting for the same sector to prevent UI thrash
         onHover: (pickingInfo: PickingInfo<Sector>) => {
           if (disableOnHover) return
           const { x, y, object: sector, viewport } = pickingInfo;
+
+          // keep last hovered id in closure to avoid repeated re-renders
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (onHover as any)._lastHoveredSectorId = (onHover as any)._lastHoveredSectorId ?? null;
+          const lastHovered = (onHover as any)._lastHoveredSectorId as number | null;
+
           if (!sector) {
-            eventEmitter.emit('onTooltipChange', null);
+            if (lastHovered !== null) {
+              (onHover as any)._lastHoveredSectorId = null;
+              eventEmitter.emit('onTooltipChange', null);
+            }
             return;
           }
 
-          // check the currently shown tooltip
-          // if the sector is the same do not update the tooltip
-          const oldTooltip = document.getElementById('tooltip-sector');
-          if (oldTooltip && oldTooltip.className === `sector-${sector.sectorId}`) return;
+          // if hovering the same sector, do nothing (avoid re-emitting)
+          if (lastHovered === sector.sectorId) return;
+
+          (onHover as any)._lastHoveredSectorId = sector.sectorId;
 
           const sectorCenterCoords = {
             longitude:
@@ -137,7 +146,7 @@ export const useSectorsLayer = ({ sectors }: Configuration, disableOnHover?: boo
           if (disableOnHover) return
           eventEmitter.emit('onSectorChange', sector?.sectorId ?? null);
         },
-        autoHighlight: true,
+        autoHighlight: false,
         highlightColor: [116, 146, 195, 128],
       }),
     [sectors, disableOnHover, onClickHandler],

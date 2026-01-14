@@ -16,7 +16,7 @@
   "type": "commonjs",
   "main": "src/app/index.tsx",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "echo 'patch-package disabled during PoC'",
     "start": "webpack serve --open --mode development",
     "build": "webpack --mode production"
   },
@@ -25,7 +25,6 @@
     "@ant-design/icons": "^5.3.6",
     "@deck.gl-community/editable-layers": "^9.0.0-alpha.1",
     "@deck.gl/core": "^9.0.9",
-    "@deck.gl/google-maps": "^9.0.9",
     "@deck.gl/layers": "^9.0.9",
     "@deck.gl/react": "^9.0.10",
     "@emotion/cache": "^11.11.0",
@@ -37,7 +36,6 @@
     "@mui/lab": "^5.0.0-alpha.170",
     "@mui/material": "^5.15.15",
     "@reduxjs/toolkit": "^2.2.3",
-    "@vis.gl/react-google-maps": "^0.9.0",
     "apexcharts": "^3.48.0",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.4.5",
@@ -45,6 +43,7 @@
     "eventemitter3": "^5.0.1",
     "formik": "^2.4.5",
     "framer-motion": "^11.0.25",
+    "maplibre-gl": "^2.4.0",
     "patch-package": "^8.0.0",
     "postinstall-postinstall": "^2.1.0",
     "prop-types": "^15.8.1",
@@ -89,8 +88,8 @@
     "style-loader": "^4.0.0",
     "typescript": "^5.4.3",
     "wait-on": "^7.2.0",
-    "webpack": "^5.91.0",
+    "webpack": "^5.104.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.0.4"
+    "webpack-dev-server": "^5.2.2"
   }
 }

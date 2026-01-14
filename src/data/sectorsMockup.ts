@@ -1,4 +1,4 @@
-import { Configuration } from '../model/configuration/configuration';
+import { Configuration } from '../model/configuration';
 import { Region } from '../model/geography';
 
 export const mapConfigMockup = {

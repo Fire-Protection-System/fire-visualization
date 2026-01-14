@@ -19,6 +19,9 @@ export interface Sector {
   burnLevel: number | null;
   extinguishLevel: number | null;
 
+  // IDs of fire brigades assigned to this sector
+  assignedBrigades?: number[];
+
 }
 
 // TODO adjust this type
@@ -29,6 +32,7 @@ export type SectorUpdate = {
    * [lng, lat][]
    */
   contours: [number, number][]; // TODO idk why this gets sent
+  assignedBrigades?: number[];
 }
 
 // TODO adjust this type
@@ -86,13 +90,19 @@ export const Sector = {
     );
   },
   updateSector: (sector: Sector, sectorUpdate: SectorUpdate): Sector => {
-    const { state, contours: _ } = sectorUpdate;
+    const { state, contours: _, assignedBrigades } = sectorUpdate;
     return {
       ...sector,
       initialState: {
         ...sector.initialState,
         ...state,
       },
+      // Update top-level fireLevel, burnLevel, extinguishLevel from state
+      fireLevel: state.fireLevel ?? sector.fireLevel,
+      burnLevel: state.burnLevel ?? sector.burnLevel,
+      extinguishLevel: state.extinguishLevel ?? sector.extinguishLevel,
+      // if assigned brigades were updated, replace them
+      assignedBrigades: assignedBrigades ?? sector.assignedBrigades,
     };
   },
 };
@@ -116,5 +126,6 @@ export const getDefaultSector = (): Sector => {
       extinguishLevel: 0
     },
     contours: [],
+    assignedBrigades: [],
   };
 };

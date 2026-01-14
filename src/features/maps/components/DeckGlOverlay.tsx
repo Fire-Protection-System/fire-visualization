@@ -1,33 +1,67 @@
-import { useMap } from '@vis.gl/react-google-maps';
-import { useEffect, useMemo } from 'react';
-
-import { GoogleMapsOverlay } from '@deck.gl/google-maps';
-
+import { useMap } from '../../../components/maps/MapLibre';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import DeckGL from '@deck.gl/react';
 import type { LayersList } from '@deck.gl/core';
 
 export type DeckglOverlayProps = { layers?: LayersList };
 
 /**
- * A very simple implementation of a component that renders a list of deck.gl layers
- * via the GoogleMapsOverlay into the <Map> component containing it.
+ * Renders deck.gl layers over MapLibre map
  */
 export const DeckGlOverlay = ({ layers }: DeckglOverlayProps) => {
-  // the GoogleMapsOverlay can persist throughout the lifetime of the DeckGlOverlay
-  const deck = useMemo(() => new GoogleMapsOverlay({ interleaved: true }), []);
-
-  // add the overlay to the map once the map is available
   const map = useMap();
+  const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
+  const [viewState, setViewState] = useState<any>(null);
+
   useEffect(() => {
-    deck.setMap(map);
+    if (!map) return;
 
-    return () => deck.setMap(null);
-  }, [deck, map]);
+    const mapContainer = (map as any).getContainer?.() || (map as any).getDiv?.();
+    if (!mapContainer) return;
 
-  // whenever the rendered data changes, the layers will be updated
-  useEffect(() => {
-    deck.setProps({ layers });
-  }, [deck, layers]);
+    const overlayDiv = document.createElement('div');
+    overlayDiv.style.position = 'absolute';
+    overlayDiv.style.top = '0';
+    overlayDiv.style.left = '0';
+    overlayDiv.style.width = '100%';
+    overlayDiv.style.height = '100%';
+    overlayDiv.style.pointerEvents = 'none';
+    mapContainer.appendChild(overlayDiv);
+    setOverlayContainer(overlayDiv);
 
-  // no dom rendered by this component
-  return null;
+    const updateViewState = () => {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      setViewState({
+        longitude: center.lng,
+        latitude: center.lat,
+        zoom: zoom,
+        pitch: 0,
+        bearing: 0
+      });
+    };
+
+    updateViewState();
+    map.on('move', updateViewState);
+
+    return () => {
+      map.off('move', updateViewState);
+      if (overlayDiv.parentNode) {
+        overlayDiv.parentNode.removeChild(overlayDiv);
+      }
+    };
+  }, [map]);
+
+  if (!overlayContainer || !viewState) return null;
+
+  return createPortal(
+    <DeckGL
+      viewState={viewState}
+      controller={false}
+      layers={layers || []}
+      style={{ pointerEvents: 'auto' }}
+    />,
+    overlayContainer
+  );
 };

@@ -12,10 +12,9 @@ import { RootState } from '../../../store/reduxStore';
 export type SensorlikeListParams = {
   sensorlikeItems: (Sensor | Camera | ForesterPatrol | FireBrigade)[];
   openModal: Dispatch<SetStateAction<boolean>>;
-  url: string;
 };
 
-export const SensorlikeList: FC<SensorlikeListParams> = ({ sensorlikeItems, url, openModal }: SensorlikeListParams) => {
+export const SensorlikeList: FC<SensorlikeListParams> = ({ sensorlikeItems, openModal }: SensorlikeListParams) => {
   const { configuration: mapConfiguration, currentSectorId } = useSelector(
     (state: RootState) => state.mapConfiguration,
   );
@@ -98,7 +97,6 @@ export const SensorlikeList: FC<SensorlikeListParams> = ({ sensorlikeItems, url,
           <SensorlikeListItem
             key={getListKey(item)}
             values={item}
-            url={url}
           />
         ))}
     </List>

@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
-// Maps handling
-import { limitTiltRange, Map } from '@vis.gl/react-google-maps';
-import DeckGL from '@deck.gl/react';
-import { MapViewState } from '@deck.gl/core';
+// Maps
+import { Map } from '../../../components/maps/MapLibre';
+import { DeckGlOverlay } from '../../../components/maps/DeckGlOverlay';
 import {
   DrawRectangleMode,
   EditableGeoJsonLayer,
@@ -12,134 +11,389 @@ import {
   ViewMode,
 } from '@deck.gl-community/editable-layers';
 
-// MUI components
+// UI
 import { MainCard } from '../../../components/MainCard';
 import { Box, Button } from '@mui/material';
 
-// Form handling
+// Form
 import { useFormikContext } from 'formik';
 
-// Map types and default configuration getter
-import { Configuration, getDefaultConfiguration } from '../../../model/configuration/configuration';
+// Types & Hooks
+import { Configuration, getDefaultConfiguration } from '../../../model/configuration';
 import { Region } from '../../../model/geography';
+import { useSectorsLayer } from '../../../components/hooks/useSectorsLayer';
+import { useForestBorderLayer } from '../../../components/hooks/useForestBorderLayer';
+import { useMap } from '../../../components/maps/MapLibre';
 
-// Initial state to display the whole Poland
-const INITIAL_VIEW_STATE: MapViewState = {
-  longitude: 18.85762440671972,
-  latitude: 52.17435627305249,
-  zoom: 5,
-};
-
-const parsePositionToMapLocation = (position: Position) => ({ longitude: position[0], latitude: position[1] });
+// Initial map view (Kraków)
+const INITIAL_CENTER: [number, number] = [19.945, 50.064652];
+const INITIAL_ZOOM = 5;
 
 export const NewConfigurationMap = () => {
-  const { setFieldValue } = useFormikContext<Configuration>();
+  const { values, setFieldValue } = useFormikContext<Configuration>();
 
   const [features, setFeatures] = useState<FeatureCollection>({
     type: 'FeatureCollection',
     features: [],
   });
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
+  const [isDrawing, setIsDrawing] = useState(false);
 
-  const [areForestBoundsDrawn, setAreForestBoundsDrawn] = useState<boolean>(false);
+  // Debug: Log isDrawing changes
   useEffect(() => {
-    if (features.features.length === 1) {
-      setAreForestBoundsDrawn(true);
-    } else {
-      setAreForestBoundsDrawn(false);
+  }, [isDrawing]);
+
+  // Create a temporary configuration for sector visualization
+  const tempConfiguration = useMemo(() => {
+    try {
+      if (!values.location || values.location.every(loc => loc.longitude === 0 && loc.latitude === 0)) {
+        return null;
+      }
+      
+      // Validate location has valid coordinates
+      const hasValidLocation = values.location.every(
+        loc => typeof loc.longitude === 'number' && 
+               typeof loc.latitude === 'number' && 
+               !isNaN(loc.longitude) && 
+               !isNaN(loc.latitude) &&
+               loc.longitude !== 0 && 
+               loc.latitude !== 0
+      );
+      
+      if (!hasValidLocation) {
+        return null;
+      }
+      
+      // Validate rows and columns
+      const rows = Number(values.rows) || 0;
+      const columns = Number(values.columns) || 0;
+      
+      if (rows <= 0 || columns <= 0 || rows > 100 || columns > 100) {
+        return null;
+      }
+      
+      // Generate sectors if we have location, rows, and columns
+      let sectors: any[] = [];
+      try {
+        sectors = Configuration.createSectors({
+          ...getDefaultConfiguration(),
+          rows: rows,
+          columns: columns,
+          location: values.location,
+        });
+      } catch (error) {
+        return null;
+      }
+      
+      // Preprocess sectors to calculate contours from the drawn rectangle
+      let preprocessedSectors: any[] = [];
+      try {
+        if (sectors.length > 0 && values.location) {
+          preprocessedSectors = Configuration.preprocessSectors({
+            ...getDefaultConfiguration(),
+            rows: rows,
+            columns: columns,
+            location: values.location,
+            sectors: sectors,
+          });
+          
+          // Filter out sectors with invalid contours
+          preprocessedSectors = preprocessedSectors.filter(
+            (sector) => 
+              sector && 
+              sector.contours && 
+              Array.isArray(sector.contours) && 
+              sector.contours.length >= 3 &&
+              sector.contours.every((c: any) => Array.isArray(c) && c.length >= 2 && typeof c[0] === 'number' && typeof c[1] === 'number')
+          );
+        }
+      } catch (error) {
+        // Return empty array rather than sectors without preprocessing
+        preprocessedSectors = [];
+      }
+
+      // Ensure we only return configuration with valid sectors
+      const validSectors = preprocessedSectors.filter(
+        (sector) => 
+          sector && 
+          sector.contours && 
+          Array.isArray(sector.contours) && 
+          sector.contours.length >= 3
+      );
+
+      return {
+        ...getDefaultConfiguration(),
+        rows: rows,
+        columns: columns,
+        location: values.location,
+        sectors: validSectors,
+      };
+    } catch (error) {
+      return null;
     }
-  }, [features]);
+  }, [values.location, values.rows, values.columns]);
 
-  const drawForestBoundsLayer = new EditableGeoJsonLayer({
-    data: features,
-    mode: isDrawing && !areForestBoundsDrawn ? DrawRectangleMode : ViewMode,
-    getTentativeLineColor: [29, 82, 13, 100],
-    getTentativeFillColor: [29, 82, 13, 80],
-    getLineColor: [15, 43, 7, 100],
-    getFillColor: [15, 43, 7, 80],
-    onEdit: ({ updatedData }) => {
-      const featureCollection = updatedData as FeatureCollection;
+  // Get bounds from the drawn rectangle
+  const bounds = useMemo(() => {
+    try {
+      if (!tempConfiguration) return null;
+      return Configuration.getBounds(tempConfiguration);
+    } catch (error) {
+      return null;
+    }
+  }, [tempConfiguration]);
 
-      if (
-        features.features.length === 0 &&
-        featureCollection.features.length === 1 &&
-        featureCollection.features[0].geometry.type === 'Polygon'
-      ) {
+  // Sector layers (like MainMap) - only render when we have a valid configuration
+  // Always call hooks (React rules), but pass safe defaults
+  const safeConfig = tempConfiguration || getDefaultConfiguration();
+  const forestBorderLayer = useForestBorderLayer(safeConfig);
+  
+  // Always call hook, but it will handle empty/invalid data gracefully
+  const sectorsLayer = useSectorsLayer(safeConfig, true);
+
+  /* ---------------- Handle rectangle creation ---------------- */
+  const handleEdit = useCallback(
+    ({ updatedData }: { updatedData: FeatureCollection }) => {
+      try {
+        
+        if (!updatedData || !updatedData.features) {
+          return;
+        }
+        
+        const polygon = updatedData.features.find(
+          (f) => f.geometry && f.geometry.type === 'Polygon'
+        );
+
+        
+        if (!polygon || features.features.length > 0) {
+          return;
+        }
+
+        // Validate polygon coordinates
+        if (!polygon.geometry || !polygon.geometry.coordinates || !Array.isArray(polygon.geometry.coordinates[0])) {
+          return;
+        }
+
         setFeatures(updatedData);
 
-        // Parse and save polygon coordinates as forest location
-        const polygonCoords = featureCollection.features[0].geometry.coordinates[0].slice(0, 4);
-        const forestBounds: Region = [
-          parsePositionToMapLocation(polygonCoords[0]),
-          parsePositionToMapLocation(polygonCoords[1]),
-          parsePositionToMapLocation(polygonCoords[2]),
-          parsePositionToMapLocation(polygonCoords[3]),
+        const coords = (polygon.geometry.coordinates[0] as Position[]).slice(0, 4);
+
+        // Validate coordinates
+        if (coords.length < 4 || coords.some(c => !Array.isArray(c) || c.length < 2 || typeof c[0] !== 'number' || typeof c[1] !== 'number')) {
+          return;
+        }
+
+        const lons = coords.map((c: Position) => c[0]);
+        const lats = coords.map((c: Position) => c[1]);
+
+        // Validate longitude and latitude values
+        if (lons.some(lon => isNaN(lon) || lon < -180 || lon > 180) || 
+            lats.some(lat => isNaN(lat) || lat < -90 || lat > 90)) {
+          return;
+        }
+
+        const minLon = Math.min(...lons);
+        const maxLon = Math.max(...lons);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+
+        // Validate bounds
+        if (minLon >= maxLon || minLat >= maxLat) {
+          return;
+        }
+
+        const region: Region = [
+          { longitude: minLon, latitude: minLat }, // SW
+          { longitude: maxLon, latitude: minLat }, // SE
+          { longitude: maxLon, latitude: maxLat }, // NE
+          { longitude: minLon, latitude: maxLat }, // NW
         ];
 
-        setFieldValue('location', forestBounds);
+        setFieldValue('location', region);
+
+        setIsDrawing(false);
+      } catch (error) {
+        setIsDrawing(false);
       }
     },
-    selectedFeatureIndexes: [], // IDK why this is necessary, but without this drawing fails
-  });
+    [features, setFieldValue, isDrawing]
+  );
 
-  const toggleDrawing = () => {
-    setIsDrawing((prev) => !prev);
+  /* ---------------- DeckGL Layer ---------------- */
+  const layer = useMemo(
+    () => {
+      const mode = isDrawing ? DrawRectangleMode : ViewMode;
+      return new EditableGeoJsonLayer({
+        id: 'draw-forest-bounds',
+        data: features,
+        mode: mode,
+        onEdit: handleEdit,
+        pickable: true,
+        autoHighlight: isDrawing,
+        selectedFeatureIndexes: [], // Required prop to prevent undefined errors
+        getLineColor: [255, 0, 0, 255],
+        getFillColor: [255, 0, 0, 60],
+        getTentativeLineColor: [255, 255, 0, 255],
+        getTentativeFillColor: [255, 255, 0, 120],
+        getLineWidth: 2,
+      });
+    },
+    [features, isDrawing, handleEdit]
+  );
+
+  /* ---------------- Actions ---------------- */
+  const startDrawing = () => {
+    setIsDrawing(true);
   };
-
-  const handleClearPolygon = () => {
-    setFeatures({
-      type: 'FeatureCollection',
-      features: [],
-    });
-    setFieldValue('location', getDefaultConfiguration().location); // TODO it will be better to make same required constraint or sth
+  
+  const stopDrawing = () => {
     setIsDrawing(false);
   };
 
+  const clear = () => {
+    setFeatures({ type: 'FeatureCollection', features: [] });
+    setFieldValue('location', getDefaultConfiguration().location);
+    setIsDrawing(false);
+  };
+
+  /* ---------------- Render ---------------- */
   return (
-    <MainCard
-      hasContent={false}
-      sx={{ mt: 1.5 }}
-    >
-      <Box sx={{ position: 'relative', width: '100%', height: '500px' /* TODO fix fixed height */ }}>
-        <DeckGL
-          initialViewState={INITIAL_VIEW_STATE}
-          controller={true}
-          layers={[drawForestBoundsLayer]}
-          onViewStateChange={limitTiltRange}
+    <MainCard hasContent={false} sx={{ mt: 1.5 }}>
+      <Box sx={{ position: 'relative', width: '100%', height: 500 }}>
+        <Map
+          id="new-config-map"
+          defaultBounds={bounds || undefined}
+          initialCenter={bounds ? undefined : INITIAL_CENTER}
+          initialZoom={bounds ? undefined : INITIAL_ZOOM}
         >
-          <Map />
-        </DeckGL>
-        <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
-          {!areForestBoundsDrawn ? (
-            !isDrawing ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Start Drawing
+          <NewConfigurationMapInner
+            features={features}
+            setFeatures={setFeatures}
+            isDrawing={isDrawing}
+            setIsDrawing={setIsDrawing}
+            handleEdit={handleEdit}
+            layer={layer}
+            forestBorderLayer={forestBorderLayer}
+            sectorsLayer={sectorsLayer}
+            tempConfiguration={tempConfiguration}
+          />
+        </Map>
+
+        {/* Controls - Always on top and clickable */}
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            top: 10, 
+            left: 10, 
+            zIndex: 10001,
+            pointerEvents: 'none', // Don't block map events
+            '& > *': {
+              pointerEvents: 'auto', // But allow button clicks
+            }
+          }}
+        >
+          {features.features.length === 0 ? (
+            isDrawing ? (
+              <Button variant="contained" color="warning" onClick={stopDrawing}>
+                Stop Drawing
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={toggleDrawing}
-              >
-                Stop Drawing
+              <Button variant="contained" onClick={startDrawing}>
+                Start Drawing
               </Button>
             )
           ) : (
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleClearPolygon}
-              disabled={!areForestBoundsDrawn}
-            >
+            <Button variant="contained" color="secondary" onClick={clear}>
               Clear Forest Bounds
             </Button>
           )}
         </Box>
       </Box>
     </MainCard>
+  );
+};
+
+// Inner component that has access to map context
+const NewConfigurationMapInner = ({
+  features,
+  setFeatures,
+  isDrawing,
+  setIsDrawing,
+  handleEdit,
+  layer,
+  forestBorderLayer,
+  sectorsLayer,
+  tempConfiguration,
+}: {
+  features: FeatureCollection;
+  setFeatures: (f: FeatureCollection) => void;
+  isDrawing: boolean;
+  setIsDrawing: (d: boolean) => void;
+  handleEdit: (args: { updatedData: FeatureCollection }) => void;
+  layer: EditableGeoJsonLayer;
+  forestBorderLayer: any;
+  sectorsLayer: any;
+  tempConfiguration: Configuration | null;
+}) => {
+  const map = useMap('new-config-map');
+
+  /* ---------------- Adjust map interactions while drawing ---------------- */
+  useEffect(() => {
+    if (!map) {
+      return;
+    }
+
+    const interactions = [
+      map.dragPan,
+      map.scrollZoom,
+      map.boxZoom,
+      map.doubleClickZoom,
+      map.touchZoomRotate,
+    ];
+
+    if (isDrawing) {
+      // Disable pan when drawing, but keep zoom enabled for navigation
+      map.dragPan?.disable();
+      // Keep other interactions enabled (zoom, etc.)
+    } else {
+      // Enable all interactions when not drawing
+      interactions.forEach((i) => i?.enable());
+    }
+
+    return () => {
+      // Always re-enable all interactions on cleanup
+      interactions.forEach((i) => i?.enable());
+    };
+  }, [map, isDrawing]);
+
+  // Debug: Log overlay rendering
+  useEffect(() => {
+  }, [isDrawing, layer]);
+
+  // Only render sectors if we have valid sectors with contours
+  const hasValidSectors = tempConfiguration && 
+                          tempConfiguration.sectors && 
+                          tempConfiguration.sectors.length > 0 &&
+                          tempConfiguration.sectors.some((s: any) => s.contours && Array.isArray(s.contours) && s.contours.length >= 3);
+
+  return (
+    <>
+      {/* DeckGL overlay for drawing - always rendered so polygon stays visible */}
+      <DeckGlOverlay 
+        overlayId="drawing" 
+        layers={[layer]} 
+        capturePointerEvents={isDrawing}
+      />
+      
+      {/* DeckGL overlay for sectors and forest border - only if we have valid sectors */}
+      {hasValidSectors && forestBorderLayer && (
+        <DeckGlOverlay
+          overlayId="sectors"
+          layers={[
+            forestBorderLayer,
+            ...(Array.isArray(sectorsLayer) ? sectorsLayer : sectorsLayer ? [sectorsLayer] : []),
+          ].filter(Boolean)}
+        />
+      )}
+    </>
   );
 };

@@ -1,24 +1,18 @@
 import { Modal, Typography, Button, Box } from '@mui/material';
 import { FileSystemComponent } from './FileSystemComponent';
-import { FileSystemNode } from '../../../../model/FileSystemModel/FileSystemNode';
+import { FileSystemNode } from '../../../../model/FileSystemNode';
 
 type SelectWorkspaceModalProps = {
   isOpen: boolean;
-
-  url: string;
-
   nodesData: { parent: FileSystemNode | null; nodes: FileSystemNode[] };
   selectedNode: FileSystemNode | null;
   setSelectedNode: (item: FileSystemNode) => void;
-
   selectWorkspace: () => Promise<void>;
-
   closeModal: () => void;
 };
   
 export const SelectWorkspaceModal = ({
   isOpen,
-  url,
   nodesData,
   selectedNode,
   setSelectedNode,
@@ -36,7 +30,6 @@ export const SelectWorkspaceModal = ({
     >
       <Box sx={{ backgroundColor: 'secondary.A100', p: 2, borderRadius: 2 }}>
         <Typography variant="h2">Open Workspace</Typography>
-        <Typography> URL: {url} </Typography>
 
         <Box
           sx={{

@@ -1,7 +1,5 @@
-import { useRef, useEffect } from 'react';
-
-// maps
-import { useMap, AdvancedMarker } from '@vis.gl/react-google-maps';
+// Migrated to deck.gl layers - see useForesterPatrolLayer hook
+// This component is kept for backward compatibility but renders nothing
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import type { Marker } from '@googlemaps/markerclusterer';
 

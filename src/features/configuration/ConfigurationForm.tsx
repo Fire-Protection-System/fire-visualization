@@ -11,9 +11,9 @@ import {
   addForesterPatrol,
   addSensor,
   setConfiguration,
-} from '../../store/reducers/mapConfigurationSlice';
-import { updateNode } from '../../components/apiService';
-import { mapFileSystemNodeToApiDataNode } from '../../model/FileSystemModel/FileSystemNode';
+} from '../../store/mapConfigurationSlice';
+import { configurationService } from '../../services/api';
+import { mapFileSystemNodeToApiDataNode } from '../../model/FileSystemNode';
 import { CreateSensorModal } from './create_items_modals/CreateSensorModal';
 import { Sensor, isSensor } from '../../model/sensor';
 import { FireBrigade, isFireBrigade } from '../../model/FireBrigade';
@@ -23,7 +23,7 @@ import { CreateCameraModal } from './create_items_modals/CreateCameraModal';
 import { CreateFireBrigadeModal } from './create_items_modals/CreateFireBrigadeModal';
 import { CreateForesterPatrolModal } from './create_items_modals/CreateForesterPatrolModal';
 import { SensorlikeList } from './SensorlikeList/SensorlikeList';
-import { Configuration } from '../../model/configuration/configuration';
+import { Configuration } from '../../model/configuration';
 
 export const ConfigurationForm: FC = () => {
   const {
@@ -32,7 +32,6 @@ export const ConfigurationForm: FC = () => {
     fileSystemNode,
   } = useSelector((state: RootState) => state.mapConfiguration);
   const [editInitialState, setEditInitialState] = useState<boolean>(false);
-  const url = 'http://localhost:31415';
 
   const [isCreateSensorModalOpen, setIsCreateSensorModalOpen] = useState<boolean>(false);
   const [isCreateCameraModalOpen, setIsCreateCameraModalOpen] = useState<boolean>(false);
@@ -80,10 +79,13 @@ export const ConfigurationForm: FC = () => {
         sensors: [...mapConfiguration.sensors, values],
       } satisfies Configuration);
 
-      await updateNode(url, fileSystemNode.id, apiNode);
-
-      // Add sensor to the mapConfiguration stored in the redux state
-      dispatch(addSensor({ sensor: values }));
+      try {
+        await configurationService.updateNode(fileSystemNode.id, apiNode);
+        // Add sensor to the mapConfiguration stored in the redux state
+        dispatch(addSensor({ sensor: values }));
+      } catch (error) {
+        console.error('[ConfigurationForm] Failed to update node with sensor:', error);
+      }
     } else if (isCamera(values)) {
       closeCreateCameraModal();
 
@@ -101,10 +103,13 @@ export const ConfigurationForm: FC = () => {
         cameras: [...mapConfiguration.cameras, values],
       } satisfies Configuration);
 
-      await updateNode(url, fileSystemNode.id, apiNode);
-
-      // Add camera to the mapConfiguration stored in the redux state
-      dispatch(addCamera({ camera: values }));
+      try {
+        await configurationService.updateNode(fileSystemNode.id, apiNode);
+        // Add camera to the mapConfiguration stored in the redux state
+        dispatch(addCamera({ camera: values }));
+      } catch (error) {
+        console.error('[ConfigurationForm] Failed to update node with camera:', error);
+      }
     } else if (isFireBrigade(values)) {
       closeCreateFireBrigadeModal();
 
@@ -123,10 +128,13 @@ export const ConfigurationForm: FC = () => {
         fireBrigades: [...mapConfiguration.fireBrigades, values],
       } satisfies Configuration);
 
-      await updateNode(url, fileSystemNode.id, apiNode);
-
-      // Add fire brigade to the mapConfiguration stored in the redux state
-      dispatch(addFireBrigade({ fireBrigade: values }));
+      try {
+        await configurationService.updateNode(fileSystemNode.id, apiNode);
+        // Add fire brigade to the mapConfiguration stored in the redux state
+        dispatch(addFireBrigade({ fireBrigade: values }));
+      } catch (error) {
+        console.error('[ConfigurationForm] Failed to update node with fire brigade:', error);
+      }
     } else if (isForesterPatrol(values)) {
       closeCreateForesterPatrolModal();
 
@@ -145,10 +153,13 @@ export const ConfigurationForm: FC = () => {
         foresterPatrols: [...mapConfiguration.foresterPatrols, values],
       } satisfies Configuration);
 
-      await updateNode(url, fileSystemNode.id, apiNode);
-
-      // Add forester patrol to the mapConfiguration stored in the redux state
-      dispatch(addForesterPatrol({ foresterPatrol: values }));
+      try {
+        await configurationService.updateNode(fileSystemNode.id, apiNode);
+        // Add forester patrol to the mapConfiguration stored in the redux state
+        dispatch(addForesterPatrol({ foresterPatrol: values }));
+      } catch (error) {
+        console.error('[ConfigurationForm] Failed to update node with forester patrol:', error);
+      }
     }
   };
 
@@ -163,13 +174,17 @@ export const ConfigurationForm: FC = () => {
           const apiNode = mapFileSystemNodeToApiDataNode(fileSystemNode, null);
           apiNode.data = stringifiedConfiguration;
 
-          updateNode(url, fileSystemNode.id, apiNode).then(() => {
-            dispatch(
-              setConfiguration({
-                configuration: values,
-              }),
-            );
-          });
+          configurationService.updateNode(fileSystemNode.id, apiNode)
+            .then(() => {
+              dispatch(
+                setConfiguration({
+                  configuration: values,
+                }),
+              );
+            })
+            .catch((error) => {
+              console.error('[ConfigurationForm] Failed to save configuration:', error);
+            });
         }}
         enableReinitialize={true}
       >
@@ -209,7 +224,6 @@ export const ConfigurationForm: FC = () => {
       />
       <SensorlikeList
         sensorlikeItems={mapConfiguration.sensors}
-        url={url}
         openModal={setIsCreateSensorModalOpen}
       />
       <Divider>Cameras</Divider>
@@ -220,7 +234,6 @@ export const ConfigurationForm: FC = () => {
       />
       <SensorlikeList
         sensorlikeItems={mapConfiguration.cameras}
-        url={url}
         openModal={setIsCreateCameraModalOpen}
       />
       <Divider>Fire Brigades</Divider>
@@ -231,7 +244,6 @@ export const ConfigurationForm: FC = () => {
       />
       <SensorlikeList
         sensorlikeItems={mapConfiguration.fireBrigades}
-        url={url}
         openModal={setIsCreateFireBrigadeModalOpen}
       />
       <Divider>Forester Patrols</Divider>
@@ -242,7 +254,6 @@ export const ConfigurationForm: FC = () => {
       />
       <SensorlikeList
         sensorlikeItems={mapConfiguration.foresterPatrols}
-        url={url}
         openModal={setIsCreateForesterPatrolModalOpen}
       />
     </MainCard>

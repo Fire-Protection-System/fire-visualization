@@ -2,11 +2,11 @@ import { Button } from '@mui/material';
 import { useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store/reduxStore';
-import { ConfigurationUpdate, isDefaultConfiguration } from '../../model/configuration/configuration';
-import { updateConfiguration } from '../../store/reducers/mapConfigurationSlice';
+import { ConfigurationUpdate, isDefaultConfiguration } from '../../model/configuration';
+import { updateConfiguration } from '../../store/mapConfigurationSlice';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useNavigate } from 'react-router-dom';
-import { abortConnection, startFetchingConfigurationUpdate } from '../../store/reducers/serverCommunicationReducers';
+import { abortConnection, startFetchingConfigurationUpdate } from '../../store/serverCommunicationReducers';
 import { UnknownAction } from '@reduxjs/toolkit';
 
 //probably something here is used instead of stop simulation button
@@ -19,7 +19,6 @@ export const RunSimulationButton = () => {
   const ctrl = useRef<AbortController>(new AbortController());
 
   const fetchConfigurationUpdate = useCallback(() => {
-    console.log("Fetch configuration update")
 
     dispatch(startFetchingConfigurationUpdate())
     
@@ -35,8 +34,6 @@ export const RunSimulationButton = () => {
   }, []);
 
 
-  console.log("AbortController")
-  console.log(new AbortController());
 
   return (
     <Button
@@ -73,19 +70,15 @@ export const RunSimulationButton = () => {
 
 //       onmessage: (event) => {        
 //         const newState = JSON.parse(event.data) as ConfigurationUpdate;
-//         console.log('Event received:', newState);
 //         if(ctrl.current.signal.aborted) {
-//           console.log("Aborted")
 //           return;
 //         }
 //         dispatch(updateConfiguration({ configurationUpdate: newState })); // TODO use timestamp that is being sent
 //       },
 //       onerror: (event) => {
-//         console.error('Event error:', event);
 //         setIsRunning(false);
 //       },
 //       onclose: () => {
-//         console.log('Event source closed'); // TODO probably ctrl.signal doesn't work
 //       },
 //     });
 //   }, [dispatch, mapConfiguration]);

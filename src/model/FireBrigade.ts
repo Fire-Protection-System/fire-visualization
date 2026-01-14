@@ -12,6 +12,7 @@ export type FireBrigade = {
   state: FireBrigadeState;
   baseLocation: MapLocation;
   currentLocation: MapLocation;
+  sectorId?: number;
 };
 
 // TODO adjust this type

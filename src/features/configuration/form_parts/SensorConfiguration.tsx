@@ -7,7 +7,7 @@ import {
   ItemFormPartProps,
 } from '../configuration';
 import { useFormikContext } from 'formik';
-import { Configuration } from '../../../model/configuration/configuration';
+import { Configuration } from '../../../model/configuration';
 import { getDefaultSensor, Sensor, SensorTypes } from '../../../model/sensor';
 import { Typography } from '@mui/material';
 import { Booleanify } from '@shared/utils/Booleanify';
@@ -19,7 +19,6 @@ const SensorFormPart: FC<ItemFormPartProps<Sensor>> = ({ readonly, obj: sensor }
 
   const sensorIdx = values.sensors.findIndex((sen) => sen.sensorId === sensor.sensorId);
   if (sensorIdx === -1) {
-    console.error(`SensorFormPart couldn't find index in the sensor list for sensor:`, sensor);
     return (
       <Typography variant={'body1'}>Sensor {sensor.sensorId} - couldn&apos;t find this sensor in the list</Typography>
     );

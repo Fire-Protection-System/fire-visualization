@@ -1,4 +1,4 @@
-import { Field, FieldArray } from 'formik';
+import { Field, FieldArray, FieldProps } from 'formik';
 import { FC, ReactNode } from 'react';
 import { Button, Grid, MenuItem, Select, Stack, TextField } from '@mui/material';
 import { labelize } from '@shared/utils/labelize';
@@ -63,25 +63,33 @@ export const ConfigFormTextField: FC<ConfigFormTextFieldProps> = (props) => {
 
 export interface ConfigFormDropDownProps extends ConfigFormFieldProps {
   allVariants: readonly string[];
+  multiple?: boolean;
 }
 
 export const ConfigFormDropDown: FC<ConfigFormDropDownProps> = (props) => {
+  const name = constructName(props.propertyName, props.objectName, props.idx);
   return (
-    <Field
-      as={Select}
-      id={constructId(props.propertyName, props.objectName, props.idx)}
-      name={constructName(props.propertyName, props.objectName, props.idx)}
-      label={labelize(props.propertyName)}
-      disabled={props.readOnly}
-    >
-      {props.allVariants.map((type) => (
-        <MenuItem
-          value={type}
-          key={type}
+    <Field name={name}>
+      {({ field }: FieldProps) => (
+        <Select
+          {...field}
+          id={constructId(props.propertyName, props.objectName, props.idx)}
+          label={labelize(props.propertyName)}
+          disabled={props.readOnly}
+          multiple={props.multiple}
+          // Ensure value is always an array when multiple is true to satisfy MUI
+          value={props.multiple ? (Array.isArray(field.value) ? field.value : []) : (field.value ?? '')}
         >
-          {type}
-        </MenuItem>
-      ))}
+          {props.allVariants.map((type) => (
+            <MenuItem
+              value={type}
+              key={type}
+            >
+              {type}
+            </MenuItem>
+          ))}
+        </Select>
+      )}
     </Field>
   );
 };

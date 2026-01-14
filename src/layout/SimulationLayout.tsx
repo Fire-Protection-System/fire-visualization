@@ -10,7 +10,7 @@ import { Box, Toolbar, useMediaQuery } from '@mui/material';
 import { MainDrawer } from './MainLayout/Drawer/MainDrawer';
 import { Header } from './SimulationLayout/Header';
 import { RootState } from '../store/reduxStore';
-import { openDrawer } from '../store/reducers/menuSlice';
+import { openDrawer } from '../store/menuSlice';
 
 
 export const SimulationLayout = () => {

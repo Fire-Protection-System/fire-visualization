@@ -7,7 +7,6 @@ export const useOnTooltipChange = (setTooltipCallback: Dispatch<SetStateAction<R
   useEffect(
     () => {
       const onTooltipChange = (tooltip: ReactNode) => {
-        // console.log('tooltip', tooltip);
         
         setTooltipCallback(tooltip)
       };

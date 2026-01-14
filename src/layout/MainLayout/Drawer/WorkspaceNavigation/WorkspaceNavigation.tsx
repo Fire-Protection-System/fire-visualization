@@ -3,15 +3,15 @@ import { useTheme } from '@mui/material/styles';
 import { FileAddOutlined, FolderAddOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { FileSystemComponent } from './FileSystemComponent';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createNode, getNode, getNodeChildren, getNodes } from '../../../../components/apiService';
+import { configurationService } from '../../../../services/api';
 import {
   FileSystemNode,
   mapApiDataNodeToFileSystemNode,
   mapApiDataNodesToFileSystemNodes,
   mapFileSystemNodeToApiDataNode,
-} from '../../../../model/FileSystemModel/FileSystemNode';
-import { NodeTypeEnum } from '../../../../model/FileSystemModel/NodeTypeEnum';
-import { Configuration } from '../../../../model/configuration/configuration';
+} from '../../../../model/FileSystemNode';
+import { NodeTypeEnum } from '../../../../model/NodeTypeEnum';
+import { Configuration } from '../../../../model/configuration';
 import { SelectWorkspaceModal } from './SelectWorkspaceModal';
 import { CreateFolderModal } from './CreateFolderModal';
 import { CreateConfigurationModal } from './CreateConfigurationModal';
@@ -21,7 +21,7 @@ import {
   setConfiguration,
   setCurrentSectorId,
   setFileSystemNode,
-} from '../../../../store/reducers/mapConfigurationSlice';
+} from '../../../../store/mapConfigurationSlice';
 import { Sector } from '../../../../model/sector';
 
 export type FileSystemNodes = { parent: FileSystemNode | null; nodes: FileSystemNode[] };
@@ -31,10 +31,27 @@ export const WorkspaceNavigation: React.FC = () => {
   const dispatch = useDispatch();
 
   const [isSelectWorkspaceModalVisible, setIsSelectWorkspaceModalVisible] = useState(false);
-  const [workspace, setWorkspace] = useState<FileSystemNodes>({
-    parent: null,
-    nodes: [],
+  const [workspace, setWorkspace] = useState<FileSystemNodes>(() => {
+    const saved = localStorage.getItem('fire-sim-workspace');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { parent: parsed, nodes: [] };
+      } catch (e) {
+      }
+    }
+    return {
+      parent: null,
+      nodes: [],
+    };
   });
+
+  // Persist workspace to localStorage whenever it changes
+  useEffect(() => {
+    if (workspace.parent) {
+      localStorage.setItem('fire-sim-workspace', JSON.stringify(workspace.parent));
+    }
+  }, [workspace.parent]);
 
   const [isNewFolderModalVisible, setIsNewFolderModalVisible] = useState(false);
   const [newFolderName, setNewFolderName] = useState<string | null>(null);
@@ -42,7 +59,7 @@ export const WorkspaceNavigation: React.FC = () => {
   const [isNewConfigurationModalVisible, setIsNewConfigurationModalVisible] = useState(false);
   const [newConfigurationName, setNewConfigurationName] = useState<string | null>(null);
 
-  const [url] = useState('http://localhost:31415');
+  // URL is now handled by the API service
 
   const [allNodes, setAllNodes] = useState<FileSystemNodes>({ parent: null, nodes: [] });
   const [selectedMenuItem, setSelectedMenuItem] = useState<FileSystemNode | null>(null);
@@ -59,14 +76,14 @@ export const WorkspaceNavigation: React.FC = () => {
   const fetchAllNodes = useCallback(async (): Promise<FileSystemNode[]> => {
     let convertedData: FileSystemNode[] = [];
     try {
-      const data = await getNodes(url);
+      const data = await configurationService.getNodes();
       convertedData = mapApiDataNodesToFileSystemNodes(data);
     } catch (error) {
-      console.error('Error fetching nodes:', error);
+      console.error('[Workspace] Failed to fetch nodes:', error);
     }
 
     return convertedData;
-  }, [url]);
+  }, []);
 
   const handleOpenSelectWorkspaceModal = useCallback(async () => {
     setIsSelectWorkspaceModalVisible(true);
@@ -79,16 +96,16 @@ export const WorkspaceNavigation: React.FC = () => {
   const fetchChildNodes = useCallback(async () => {
     try {
       if (workspace.parent) {
-        const data = await getNodeChildren(url, workspace.parent.id);
+        const data = await configurationService.getNodeChildren(workspace.parent.id);
         const convertedData = mapApiDataNodesToFileSystemNodes(data);
         setWorkspace((prevState) => ({ ...prevState, nodes: convertedData }));
       } else {
         setWorkspace((prevState) => ({ ...prevState, nodes: [] }));
       }
     } catch (error) {
-      console.error('Error fetching nodes:', error);
+      console.error('[Workspace] Failed to fetch child nodes:', error);
     }
-  }, [url, workspace.parent]);
+  }, [workspace.parent]);
 
   useEffect(() => {
     fetchChildNodes();
@@ -97,16 +114,16 @@ export const WorkspaceNavigation: React.FC = () => {
   const selectWorkspace = useCallback(async () => {
     try {
       if (selectedModalMenuItem) {
-        const data = await getNode(url, selectedModalMenuItem.id);
+        const data = await configurationService.getNode(selectedModalMenuItem.id);
         const convertedData = mapApiDataNodeToFileSystemNode(data);
         setWorkspace({ parent: convertedData, nodes: [] });
       }
     } catch (error) {
-      console.error('Error fetching workspace node:', error);
+      console.error('[Workspace] Failed to select workspace:', error);
     }
 
     handleSelectWorkspaceCloseModal();
-  }, [handleSelectWorkspaceCloseModal, selectedModalMenuItem, url]);
+  }, [handleSelectWorkspaceCloseModal, selectedModalMenuItem]);
 
   const handleOpenNewFolderModal = useCallback((): void => {
     setIsNewFolderModalVisible(true);
@@ -141,15 +158,17 @@ export const WorkspaceNavigation: React.FC = () => {
       };
 
       try {
-        await createNode(url, mapFileSystemNodeToApiDataNode(newFolder, selectedModalMenuItem.id));
+        await configurationService.createNode(
+          mapFileSystemNodeToApiDataNode(newFolder, selectedModalMenuItem.id)
+        );
       } catch (error) {
-        console.error('Error creating new folder:', error);
+        console.error('[Workspace] Failed to create folder:', error);
       }
     }
 
     fetchChildNodes();
     handleCloseNewFolderModal();
-  }, [fetchChildNodes, handleCloseNewFolderModal, newFolderName, selectedModalMenuItem, url]);
+  }, [fetchChildNodes, handleCloseNewFolderModal, newFolderName, selectedModalMenuItem]);
 
   const handleCreateConfiguration = useCallback(async () => {
     if ((workspace.parent || selectedMenuItem) && newConfigurationName) {
@@ -187,9 +206,9 @@ export const WorkspaceNavigation: React.FC = () => {
     // })
     // newConfigurationMapped.data = JSON.stringify(aaaa);
     try {
-      await createNode(url, newConfigurationMapped);
+      await configurationService.createNode(newConfigurationMapped);
     } catch (error) {
-      console.error('Error creating new configuration:', error);
+      console.error('[Workspace] Failed to create configuration:', error);
     }
   };
 
@@ -241,7 +260,6 @@ export const WorkspaceNavigation: React.FC = () => {
 
       <SelectWorkspaceModal
         isOpen={isSelectWorkspaceModalVisible}
-        url={url}
         nodesData={allNodes}
         selectedNode={selectedModalMenuItem}
         setSelectedNode={setSelectedModalMenuItem}
@@ -251,7 +269,6 @@ export const WorkspaceNavigation: React.FC = () => {
 
       <CreateFolderModal
         isOpen={isNewFolderModalVisible}
-        url={url}
         newFolderName={newFolderName}
         setNewFolderName={setNewFolderName}
         nodesData={workspace}
@@ -263,11 +280,10 @@ export const WorkspaceNavigation: React.FC = () => {
 
       <CreateConfigurationModal
         isOpen={isNewConfigurationModalVisible}
-        url={url}
         newConfigurationName={newConfigurationName}
         setNewConfigurationName={setNewConfigurationName}
         nodesData={workspace}
-        selectedNode={selectedModalMenuItem}
+        selectedNode={selectedMenuItem}
         configurationFormRef={configurationFormRef}
         handleCreateConfiguration={handleCreateConfiguration}
         handleSubmit={handleSubmit}
@@ -284,8 +300,9 @@ export const WorkspaceNavigation: React.FC = () => {
           // if there are any unsaved changes in the currently open configuration
           if (!selectedMenuItem) return;
 
-          const node = await getNode(url, selectedMenuItem.id);
-          if (node.data === null) return;
+          try {
+            const node = await configurationService.getNode(selectedMenuItem.id);
+            if (node.data === null) return;
 
           const selectedConfiguration = JSON.parse(node.data) as Configuration;
 
@@ -304,6 +321,9 @@ export const WorkspaceNavigation: React.FC = () => {
               currentSectorId: null,
             }),
           );
+          } catch (error) {
+            console.error('[Workspace] Failed to load configuration:', error);
+          }
         }}
       />
     </Box>

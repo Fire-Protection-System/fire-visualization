@@ -19,6 +19,16 @@ const App = () => {
 
 const root = createRoot(document.getElementById('root')!);
 
+// Global runtime handlers to surface errors and rejection details in console for easier debugging
+window.addEventListener('error', (ev) => {
+  // eslint-disable-next-line no-console
+  window.__LAST_ERROR__ = { error: ev.error, message: ev.message, stack: ev.error?.stack };
+});
+window.addEventListener('unhandledrejection', (ev) => {
+  // eslint-disable-next-line no-console
+  window.__LAST_REJECTION__ = { reason: ev.reason, stack: ev.reason?.stack };
+});
+
 root.render(
   /*
    * Had do disable React.StrictMode due to

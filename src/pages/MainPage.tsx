@@ -3,7 +3,7 @@ import { Grid } from '@mui/material';
 
 // maps
 import { MapWrapper } from '@features/maps';
-import { MainMap } from '../components/maps/maps/MainMap';
+import { MainMap } from '../components/maps/MainMap';
 
 // configuration
 import { ConfigurationForm } from '@features/configuration/ConfigurationForm';

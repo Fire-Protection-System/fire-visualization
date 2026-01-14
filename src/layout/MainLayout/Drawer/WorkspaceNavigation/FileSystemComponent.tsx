@@ -1,9 +1,9 @@
 import { Box, Collapse, List, ListItemButton, ListItemIcon, ListItemText, useTheme } from '@mui/material';
-import FolderIcon from '@mui/icons-material/Folder';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { useState } from 'react';
-import { FileSystemNode } from '../../../../model/FileSystemModel/FileSystemNode';
-import { NodeTypeEnum } from '../../../../model/FileSystemModel/NodeTypeEnum';
+import { FileSystemNode } from '../../../../model/FileSystemNode';
+import { NodeTypeEnum } from '../../../../model/NodeTypeEnum';
 
 interface Props {
   data: { parent: FileSystemNode | null; nodes: FileSystemNode[] };
@@ -65,8 +65,8 @@ export const FileSystemComponent: React.FC<Props> = ({
               },
             }}
           >
-            <ListItemIcon>
-              <FolderIcon />
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <FolderOutlinedIcon sx={{ fontSize: 18 }} />
             </ListItemIcon>
             <ListItemText primary={item.name} />
           </ListItemButton>
@@ -105,8 +105,8 @@ export const FileSystemComponent: React.FC<Props> = ({
             },
           }}
         >
-          <ListItemIcon>
-            <InsertDriveFileIcon />
+          <ListItemIcon sx={{ minWidth: 36 }}>
+            <DescriptionOutlinedIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText primary={item.name} />
         </ListItemButton>

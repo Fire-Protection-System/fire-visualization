@@ -7,7 +7,7 @@ import { AppBarStyled } from './AppBarStyled';
 
 // assets
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-import { RunSimulationButton } from './../../../components/simulationButtons/RunSimulationButton';
+import { RunSimulationButton } from '../../../components/simulation/RunSimulationButton';
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 

@@ -6,9 +6,9 @@ import { Box } from '@mui/material';
 // assets
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 
-import { StopSimulationButton } from '../../components/simulationButtons/StopSimulationButton';
-import AutoRecommendationSwitch from '../../components/simulationButtons/RunAutoSimulationSwitch';
-import DownloadSimulationConfigurationButton from '../../components/simulationButtons/DownloadSimulationConfugurationButton';
+import { StopSimulationButton } from '../../components/simulation/StopSimulationButton';
+import AutoRecommendationSwitch from '../../components/simulation/AutoRecommendationSwitch';
+import DownloadConfigurationButton from '../../components/simulation/DownloadConfigurationButton';
 
 import { AppBarStyled } from '../MainLayout/Header/AppBarStyled';
 
@@ -23,7 +23,7 @@ export const Header = () => {
     <Toolbar sx={{ justifyContent: 'end' }}>    
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <AutoRecommendationSwitch />
-        <DownloadSimulationConfigurationButton />
+        <DownloadConfigurationButton />
         <StopSimulationButton />
       </Box>
     </Toolbar>

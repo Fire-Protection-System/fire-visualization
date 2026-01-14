@@ -1,11 +1,11 @@
-import { APIProvider } from '@vis.gl/react-google-maps';
 import { ReactNode } from 'react';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
 
 type MapWrapperProps = {
   children: ReactNode;
 };
 
+// MapLibre doesn't need API provider
 export const MapWrapper = ({ children }: MapWrapperProps) => {
-  // process.env.GOOGLE_API_KEY can be undefined in some envs; provide empty string fallback
-  return <APIProvider apiKey={(process.env.GOOGLE_API_KEY ?? '') as string}>{children}</APIProvider>;
+  return <ErrorBoundary>{children}</ErrorBoundary>;
 };

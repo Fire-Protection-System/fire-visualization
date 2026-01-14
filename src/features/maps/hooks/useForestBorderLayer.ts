@@ -1,6 +1,6 @@
 import { PolygonLayer } from '@deck.gl/layers';
 import { Region } from '../../../model/geography';
-import { Configuration } from '../../../model/configuration/configuration';
+import { Configuration } from '../../../model/configuration';
 import { useMemo } from 'react';
 
 export const useForestBorderLayer = ({ location }: Configuration) => {

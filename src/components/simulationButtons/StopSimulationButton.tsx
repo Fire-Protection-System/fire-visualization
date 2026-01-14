@@ -2,11 +2,11 @@ import { Button } from '@mui/material';
 import { useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store/reduxStore';
-import { ConfigurationUpdate, isDefaultConfiguration } from '../../model/configuration/configuration';
-import { updateConfiguration } from '../../store/reducers/mapConfigurationSlice';
+import { ConfigurationUpdate, isDefaultConfiguration } from '../../model/configuration';
+import { updateConfiguration } from '../../store/mapConfigurationSlice';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useNavigate } from 'react-router-dom';
-import { abortConnection, sendStopRequest } from '../../store/reducers/serverCommunicationReducers';
+import { abortConnection, sendStopRequest } from '../../store/serverCommunicationReducers';
 
 //this button probably isn't even used, nor stopSimulation is
 export const StopSimulationButton = () => {
@@ -17,7 +17,6 @@ export const StopSimulationButton = () => {
 
   const stopSimulation = useCallback(() => {
      dispatch(sendStopRequest());
-   console.log("Simulation stopped");
    navigate('/');
    dispatch(abortConnection())
 

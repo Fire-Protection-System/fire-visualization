@@ -9,10 +9,10 @@ import { Sensor } from "../../../model/sensor";
 import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
 import RenderSimulationItem from "../RenderSimulationItem";
 import { MapWrapper } from "../../maps/MapWrapper";
-import { MainMap } from "../../maps/maps/MainMap";
-import { FireBrigadeMap } from "../../maps/maps/FireBrigadeMap";
-import { sendBrigadeOrForesterMoveOrder } from "../../../store/reducers/serverCommunicationReducers";
-import { ForesterMap } from "../../maps/maps/ForesterMap";
+import { MainMap } from "../../maps/MainMap";
+import { FireBrigadeMap } from "../../maps/FireBrigadeMap";
+import { sendBrigadeOrForesterMoveOrder } from "../../../store/serverCommunicationReducers";
+import { ForesterMap } from "../../maps/ForesterMap";
 
 type Props = {
    forestPatrolID: number;
@@ -48,7 +48,6 @@ export default function ForestPatrolDialog(props: Props) {
 
    const submitTargetSector = () => {
       if(targetSector === null) {
-         console.error("Target sector is null");
          return;
       }
       dispatch(sendBrigadeOrForesterMoveOrder(props.forestPatrolID, targetSector, "forester"));

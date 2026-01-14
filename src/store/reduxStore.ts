@@ -2,7 +2,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 
 // project import
-import { combinedReducers } from './reducers/combinedReducers';
+import { combinedReducers } from './combinedReducers';
 
 // ==============================|| REDUX TOOLKIT - MAIN STORE ||============================== //
 

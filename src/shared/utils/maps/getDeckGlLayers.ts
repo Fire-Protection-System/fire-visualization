@@ -8,7 +8,7 @@ import { eventEmitter } from '../eventEmitter';
 import { createElement, CSSProperties } from 'react';
 import { Box, List, ListItem, ListItemText } from '@mui/material';
 import { Sector } from '../../model/sector';
-import { Configuration } from '../../model/configuration/configuration';
+import { Configuration } from '../../model/configuration';
 import { Region } from '../../model/geography';
 
 const styles = {

@@ -1,7 +1,7 @@
 import { ConfigArrayForm, ConfigFormTextField, ConfigGridContainer, ItemFormPartProps } from '../configuration';
 import { Camera, getDefaultCamera } from '../../../model/camera';
 import { useFormikContext } from 'formik';
-import { Configuration } from '../../../model/configuration/configuration';
+import { Configuration } from '../../../model/configuration';
 import { FC } from 'react';
 import { Typography } from '@mui/material';
 import { Booleanify } from '@shared/utils/Booleanify';
@@ -13,7 +13,6 @@ export const CameraFormPart: FC<ItemFormPartProps<Camera>> = ({ readonly, obj: c
 
   const cameraIdx = values.cameras.findIndex((cam) => cam.cameraId === camera.cameraId);
   if (cameraIdx === -1) {
-    console.error(`CameraFormPart couldn't find index in the camera list for camera:`, camera);
     return (
       <Typography variant={'body1'}>Camera {camera.cameraId} - couldn&apos;t find this camera in the list</Typography>
     );

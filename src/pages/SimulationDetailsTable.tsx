@@ -10,16 +10,13 @@ import {
     TableBody
 } from '@mui/material';
 import { RootState } from '../store/reduxStore';
+import { useMemo } from 'react';
 
 export default function SimulationDetailsTable() {
-    const mapConfigState = useSelector((state: RootState) => {
-        return state.mapConfiguration;
-    });
+    const mapConfigState = useSelector((state: RootState) => state.mapConfiguration);
 
     const {
         configuration: mapConfiguration,
-        currentSectorId,
-        fileSystemNode,
     } = mapConfigState || {};
 
     const sectors = mapConfiguration?.sectors || [];
@@ -44,18 +41,18 @@ export default function SimulationDetailsTable() {
                             <TableRow key={sector?.sectorId || `sector-${index}`}>
                                 <TableCell>{sector?.sectorId ?? 'N/A'}</TableCell>
                                 <TableCell>
-                                    {sector?.initialState?.fireLevel !== undefined
-                                        ? sector.initialState.fireLevel.toFixed(2)
+                                    {sector?.fireLevel !== null && sector?.fireLevel !== undefined
+                                        ? sector.fireLevel.toFixed(2)
                                         : '0.00'}
                                 </TableCell>
                                 <TableCell>
-                                    {sector?.initialState?.burnLevel !== undefined
-                                        ? sector.initialState.burnLevel.toFixed(2)
+                                    {sector?.burnLevel !== null && sector?.burnLevel !== undefined
+                                        ? sector.burnLevel.toFixed(2)
                                         : '0.00'}
                                 </TableCell>
                                 <TableCell>
-                                    {sector?.initialState?.extinguishLevel !== undefined
-                                        ? sector.initialState.extinguishLevel.toFixed(2)
+                                    {sector?.extinguishLevel !== null && sector?.extinguishLevel !== undefined
+                                        ? sector.extinguishLevel.toFixed(2)
                                         : '0.00'}
                                 </TableCell>
                             </TableRow>
@@ -63,7 +60,6 @@ export default function SimulationDetailsTable() {
                     </TableBody>
                 </Table>
             </Paper>
-
         </Box>
     );
 }

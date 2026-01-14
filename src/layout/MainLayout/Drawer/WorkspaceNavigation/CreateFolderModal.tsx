@@ -1,12 +1,11 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Modal, Typography, TextField, Button, Box } from '@mui/material';
 import { FileSystemComponent } from './FileSystemComponent';
-import { FileSystemNode } from '../../../../model/FileSystemModel/FileSystemNode';
+import { FileSystemNode } from '../../../../model/FileSystemNode';
 import { FileSystemNodes } from './WorkspaceNavigation';
 
 type CreateFolderModalProps = {
   isOpen: boolean;
-  url: string;
   newFolderName: string | null;
   setNewFolderName: Dispatch<SetStateAction<string | null>>;
   nodesData: FileSystemNodes;
@@ -18,7 +17,6 @@ type CreateFolderModalProps = {
 
 export const CreateFolderModal = ({
   isOpen,
-  url,
   newFolderName,
   nodesData,
   selectedNode,
@@ -38,7 +36,6 @@ export const CreateFolderModal = ({
     >
       <Box sx={{ backgroundColor: 'secondary.A100', p: 2, borderRadius: 2 }}>
         <Typography variant="h2">Create Folder</Typography>
-        <Typography> URL: {url} </Typography>
         <TextField
           sx={{ my: 1 }}
           id="outlined-basic"

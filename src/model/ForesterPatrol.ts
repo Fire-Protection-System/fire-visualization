@@ -2,7 +2,7 @@ import { ForesterPatrolBaseMarker, ForesterPatrolMarker } from '@features/maps';
 import { getDefaultMapLocation } from './common';
 import { MapLocation } from './geography';
 
-export const ForesterPatrolStates = ['AVAILABLE', 'TRAVELLING', 'PATROLLING', 'FORRESTING'] as const;
+export const ForesterPatrolStates = ['AVAILABLE', 'TRAVELLING', 'PATROLLING'] as const;
 
 export type ForesterPatrolState = (typeof ForesterPatrolStates)[number];
 
@@ -12,6 +12,7 @@ export type ForesterPatrol = {
   state: ForesterPatrolState;
   baseLocation: MapLocation;
   currentLocation: MapLocation;
+  sectorId?: number;
 };
 
 // TODO adjust this type

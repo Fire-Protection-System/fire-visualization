@@ -1,7 +1,7 @@
 import { Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../../store/reduxStore";
-import { sendBrigadeOrForesterMoveToBaseOrder } from "../../../store/reducers/serverCommunicationReducers";
+import { sendBrigadeOrForesterMoveToBaseOrder } from "../../../store/serverCommunicationReducers";
 
 type Props = {
    forestPatrolID: number;

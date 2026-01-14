@@ -3,33 +3,24 @@ import { Modal, Typography, TextField, Stack, Button, Box } from '@mui/material'
 import { Form, Formik, FormikProps } from 'formik';
 import { ForestFormPart } from '@features/configuration/ForestConfiguration';
 import { FileSystemNodes } from './WorkspaceNavigation';
-import { FileSystemNode } from '../../../../model/FileSystemModel/FileSystemNode';
-import { Configuration, getDefaultConfiguration } from '../../../../model/configuration/configuration';
+import { FileSystemNode } from '../../../../model/FileSystemNode';
+import { Configuration, getDefaultConfiguration } from '../../../../model/configuration';
 import { MapWrapper, NewConfigurationMap } from '@features/maps';
 
 type CreateConfigurationModalProps = {
   isOpen: boolean;
-
-  url: string;
-
   newConfigurationName: string | null;
   setNewConfigurationName: Dispatch<SetStateAction<string | null>>;
-
   nodesData: FileSystemNodes;
   selectedNode: FileSystemNode | null;
-
   configurationFormRef: MutableRefObject<FormikProps<Configuration> | null>;
-
   handleCreateConfiguration: () => Promise<void>;
-
   handleSubmit: (values: Configuration) => Promise<void>;
-
   closeModal: () => void;
 };
 
 export const CreateConfigurationModal = ({
   isOpen,
-  url,
   newConfigurationName,
   setNewConfigurationName,
   nodesData,
@@ -56,7 +47,6 @@ export const CreateConfigurationModal = ({
         }}
       >
         <Typography variant="h2">New configuration</Typography>
-        <Typography> URL: {url} </Typography>
         <Typography> Folder name: {selectedNode ? selectedNode.name : nodesData.parent?.name} </Typography>
         <TextField
           sx={{ my: 1 }}

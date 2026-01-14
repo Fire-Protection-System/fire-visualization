@@ -1,10 +1,10 @@
-import { APIProvider } from '@vis.gl/react-google-maps';
 import { ReactNode } from 'react';
 
 type MapWrapperProps = {
   children: ReactNode;
 };
 
+// MapLibre doesn't need API provider - just pass through children
 export const MapWrapper = ({ children }: MapWrapperProps) => {
-  return <APIProvider apiKey={process.env.GOOGLE_API_KEY}>{children}</APIProvider>;
+  return <>{children}</>;
 };

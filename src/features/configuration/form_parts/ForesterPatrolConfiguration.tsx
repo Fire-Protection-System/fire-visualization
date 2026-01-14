@@ -8,7 +8,7 @@ import {
 import { FC } from 'react';
 import { ForesterPatrol, ForesterPatrolStates, getDefaultForesterPatrol } from '../../../model/ForesterPatrol';
 import { useFormikContext } from 'formik';
-import { Configuration } from '../../../model/configuration/configuration';
+import { Configuration } from '../../../model/configuration';
 import { Typography } from '@mui/material';
 import { Booleanify } from '@shared/utils/Booleanify';
 
@@ -21,7 +21,6 @@ const ForesterPatrolFormPart: FC<ItemFormPartProps<ForesterPatrol>> = ({ readonl
     (forPatr) => forPatr.foresterPatrolId === foresterPatrol.foresterPatrolId,
   );
   if (foresterPatrolIdx === -1) {
-    console.error(
       `ForesterPatrolFormPart couldn't find index in the forester patrol list for forester patrol:`,
       foresterPatrol,
     );

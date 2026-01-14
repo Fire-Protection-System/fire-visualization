@@ -3,12 +3,12 @@ import { Box, Grid } from '@mui/material';
 
 // maps
 import { MapWrapper } from '@features/maps';
-import { MainMap } from '../components/maps/maps/MainMap';
-import DetailsContainer from '../components/simulationPanel/DetailsContainer';
-import FireInformationContainer from '../components/simulationPanel/FireInformationContainer';
-import RecommendedDecisions from '../components/simulationPanel/RecomendedDecisions';
-import FireBrigadeManagement from '../components/simulationPanel/FireBrigade/FireBrigadeManagement';
-import ForestPatrolManagement from '../components/simulationPanel/ForestPatrol/ForestPatrolManagement';
+import { MainMap } from '../components/maps/MainMap';
+import DetailsContainer from '../components/simulation/DetailsContainer';
+import FireInformationContainer from '../components/simulation/FireInformationContainer';
+import RecommendedDecisions from '../components/simulation/RecommendedDecisions';
+import FireBrigadeManagement from '../components/simulation/FireBrigadeManagement';
+import ForestPatrolManagement from '../components/simulation/ForestPatrolManagement';
 
 import SimulationDetailsTable from './SimulationDetailsTable';
 import ActorsDetailsTable from './ActorsDetailsTable';

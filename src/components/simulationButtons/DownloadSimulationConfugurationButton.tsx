@@ -12,7 +12,6 @@ const DownloadSimulationConfigurationButton: React.FC = () => {
   const downloadFile = () => {
   
     if (!mapConfiguration?.configuration) {
-      console.warn("Brak konfiguracji do pobrania.");
       return;
     }
 

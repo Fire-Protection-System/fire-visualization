@@ -7,16 +7,15 @@ import { Box, Button, ListItem, Typography } from '@mui/material';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { RootState, dispatch } from '../../../store/reduxStore';
-import { mapFileSystemNodeToApiDataNode } from '../../../model/FileSystemModel/FileSystemNode';
-import { updateNode } from '../../../components/apiService';
-import { setConfiguration } from '../../../store/reducers/mapConfigurationSlice';
+import { mapFileSystemNodeToApiDataNode } from '../../../model/FileSystemNode';
+import { configurationService } from '../../../services/api';
+import { setConfiguration } from '../../../store/mapConfigurationSlice';
 
 type SensorlikeListItemProps = {
   values: Sensor | Camera | ForesterPatrol | FireBrigade;
-  url: string;
 };
 
-export const SensorlikeListItem: FC<SensorlikeListItemProps> = ({ values, url }: SensorlikeListItemProps) => {
+export const SensorlikeListItem: FC<SensorlikeListItemProps> = ({ values }: SensorlikeListItemProps) => {
   const { configuration: mapConfiguration, fileSystemNode } = useSelector((state: RootState) => state.mapConfiguration);
 
   const deleteItem = () => {
@@ -39,13 +38,17 @@ export const SensorlikeListItem: FC<SensorlikeListItemProps> = ({ values, url }:
     const apiNode = mapFileSystemNodeToApiDataNode(fileSystemNode, null);
     apiNode.data = stringifiedConfiguration;
 
-    updateNode(url, fileSystemNode.id, apiNode).then(() => {
-      dispatch(
-        setConfiguration({
-          configuration: newConfiguration,
-        }),
-      );
-    });
+    configurationService.updateNode(fileSystemNode.id, apiNode)
+      .then(() => {
+        dispatch(
+          setConfiguration({
+            configuration: newConfiguration,
+          }),
+        );
+      })
+      .catch((error) => {
+        console.error('[SensorlikeListItem] Failed to update node:', error);
+      });
   };
 
   const renderItem = (): ReactNode => {
