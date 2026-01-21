@@ -17,6 +17,7 @@ export default function FireInformationContainer() {
    }, [dispatch]);
 
    const marks = useMemo(() => [
+      { value: 0.1, label: 'Ultra Fast' },
       { value: 1, label: 'Fast' },
       { value: 15, label: 'Medium' },
       { value: 30, label: 'Slow' },
@@ -35,9 +36,9 @@ export default function FireInformationContainer() {
          </Typography>
          <Slider
             value={tickInterval}
-            min={1}
+            min={0.1}
             max={30}
-            step={1}
+            step={0.1}
             marks={marks}
             sx={{ maxWidth: 300, mt: 2 }}
             onChange={handleSpeedChange}

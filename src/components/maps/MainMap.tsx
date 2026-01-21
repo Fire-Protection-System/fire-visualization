@@ -15,42 +15,132 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import { MainCard } from '../MainCard';
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AgentMarkerManager from './AgentMarkerManager';
+import { useLocation } from 'react-router-dom';
 import { Configuration } from '../../model/configuration';
-import { useFireBrigadeLayer } from '../hooks/useFireBrigadeLayer';
+import { agentPositionController } from '../../features/maps/AgentPositionController';
+
 import { eventEmitter } from '@shared/utils/eventEmitter';
-import { useForesterPatrolLayer } from '../hooks/useForesterPatrolLayer';
-import { useSensorLayer } from '../hooks/useSensorLayer';
-import { useCameraLayer } from '../hooks/useCameraLayer';
-import { useForestBorderLayer } from '../hooks/useForestBorderLayer';
-import { useSectorsLayer } from '../hooks/useSectorsLayer';
-import { useSelectedSectorLayer } from '../hooks/useSelectedSectorLayer';
-import { useOnSectorChange } from '../hooks/useOnSectorChange';
-import { useOnTooltipChange } from '../hooks/useOnTooltipChange';
-import { useDispatch, useSelector } from 'react-redux';
+import { useForesterPatrolLayer } from '../../features/maps/useForesterPatrolLayer';
+import { useSensorLayer } from '../../features/maps/useSensorLayer';
+import { useCameraLayer } from '../../features/maps/useCameraLayer';
+import { useForestBorderLayer } from '../../features/maps/useForestBorderLayer';
+import { useSectorsLayer } from '../../features/maps/useSectorsLayer';
+import { useSelectedSectorLayer } from '../../features/maps/useSelectedSectorLayer';
+import { useOnSectorChange } from '../../features/maps/useOnSectorChange';
+import { useOnTooltipChange } from '../../features/maps/useOnTooltipChange';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
 import { setCurrentSectorId } from '../../store/mapConfigurationSlice';
-import { SensorMarkers } from './SensorMarkers';
-import { CameraMarkers } from './CameraMarkers';
-import { ForesterPatrolMarkers } from './ForesterPatrolMarkers';
-import { FireBrigadeMarkers } from './FireBrigadeMarkers';
-import { FireBrigadeBaseMarkers } from './FireBrigadeBaseMarkers';
-import { ForesterPatrolBaseMarkers } from './ForesterPatrolBaseMarkers';
 import FireBrigadeDialog from '../simulation/FireBrigadeDialog';
+import { FireBrigade } from '../../model/FireBrigade';
+import { ForesterPatrol } from '../../model/ForesterPatrol';
+
+const getSectorCenter = (contours: number[][]): [number, number] | null => {
+  if (!contours || contours.length === 0) return null;
+  let sumLon = 0;
+  let sumLat = 0;
+  for (const point of contours) {
+    sumLon += point[0];
+    sumLat += point[1];
+  }
+  return [sumLon / contours.length, sumLat / contours.length];
+};
+
+const getAgentDestination = (
+  agent: FireBrigade | ForesterPatrol,
+  sectors: any[],
+): [number, number] | null => {
+  if (agent.state !== 'TRAVELLING') return null;
+
+  const loc = (agent as any).currentLocation;
+  if (!loc || typeof loc.longitude !== 'number' || typeof loc.latitude !== 'number') {
+    return null;
+  }
+
+  if (agent.sectorId && agent.sectorId > 0) {
+    const sector = sectors.find((s: any) => s.sectorId === agent.sectorId);
+    if (sector?.contours?.length) {
+      const center = getSectorCenter(sector.contours);
+      if (center) {
+        const dx = center[0] - loc.longitude;
+        const dy = center[1] - loc.latitude;
+        if (Math.hypot(dx, dy) > 0.001) {
+          return center;
+        }
+      }
+    }
+  }
+  const dx = agent.baseLocation.longitude - loc.longitude;
+  const dy = agent.baseLocation.latitude - loc.latitude;
+  if (Math.hypot(dx, dy) > 0.001) {
+    return [agent.baseLocation.longitude, agent.baseLocation.latitude];
+  }
+  return null;
+};
+
+const buildAgentHistoryGeojson = (
+  history: {
+    fireBrigades: Record<number, [number, number][]>;
+    foresterPatrols: Record<number, [number, number][]>;
+  },
+) => {
+  const features: any[] = [];
+
+  Object.entries(history.fireBrigades).forEach(([id, points]) => {
+    if (points.length < 2) return;
+    features.push({
+      type: 'Feature',
+      properties: { color: '#cc0000' },
+      geometry: {
+        type: 'LineString',
+        coordinates: points,
+      },
+    });
+  });
+
+  Object.entries(history.foresterPatrols).forEach(([id, points]) => {
+    if (points.length < 2) return;
+    features.push({
+      type: 'Feature',
+      properties: { color: '#0044cc' },
+      geometry: {
+        type: 'LineString',
+        coordinates: points,
+      },
+    });
+  });
+
+  return {
+    type: 'FeatureCollection',
+    features,
+  };
+};
 
 export const MainMap = () => {
-  const { configuration: mapConfiguration, currentSectorId } = useSelector(
-    (state: RootState) => state.mapConfiguration,
-  );
+  const location = useLocation();
+  const mapConfiguration = useSelector((state: RootState) => state.mapConfiguration.configuration);
+  const currentSectorId = useSelector((state: RootState) => state.mapConfiguration.currentSectorId);
+  const renderCountRef = useRef(0);
+  const lastRenderLogTimeRef = useRef(Date.now());
   const dispatch = useDispatch();
-
   const [tooltip, setTooltip] = useState<ReactNode>(null);
 
-  const [bounds, setBounds] = useState(() => Configuration.getBounds(mapConfiguration));
-  
+  const [bounds, setBounds] = useState(() => {
+    if (!mapConfiguration || !mapConfiguration.location) {
+      return { north: 0, east: 0, south: 0, west: 0 };
+    }
+    return Configuration.getBounds(mapConfiguration);
+  });
+
+  const isConfigView = !location.pathname.includes('/simulation');
+
   useEffect(() => {
+    if (!mapConfiguration || !mapConfiguration.location) {
+      return;
+    }
     const newBounds = Configuration.getBounds(mapConfiguration);
-    // Only update bounds if they actually changed (shallow comparison is sufficient for bounds)
     if (
       newBounds.north !== bounds.north ||
       newBounds.south !== bounds.south ||
@@ -59,24 +149,96 @@ export const MainMap = () => {
     ) {
       setBounds(newBounds);
     }
-  }, [mapConfiguration]); // Removed bounds from dependencies to avoid unnecessary re-renders
-  // Bounds are passed to MapLibre via props; MapLibre will call fitBounds when they change.
+  }, [mapConfiguration, bounds]); // Include bounds in dependencies for comparison
 
   const forestBorderLayer = useForestBorderLayer(mapConfiguration);
-  const sectorsLayer = useSectorsLayer(mapConfiguration);
+  const sectorsLayer = useSectorsLayer(mapConfiguration, false, undefined, currentSectorId);
   const selectedSectorLayer = useSelectedSectorLayer(
     mapConfiguration.sectors.find(({ sectorId }) => sectorId === currentSectorId),
   );
 
-  // marker layers (deck.gl PoC)
-  const fireBrigadeLayer = useFireBrigadeLayer();
   const foresterPatrolLayer = useForesterPatrolLayer();
   const sensorLayer = useSensorLayer();
   const cameraLayer = useCameraLayer();
 
-  useOnTooltipChange(setTooltip);
+  const [showAgentHistory, setShowAgentHistory] = useState(false);
 
-  // handle clicks on fire brigades (from deck.gl layer)
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const historyRef = useRef<{
+    fireBrigades: Record<number, [number, number][]>;
+    foresterPatrols: Record<number, [number, number][]>;
+  }>({ fireBrigades: {}, foresterPatrols: {} });
+
+  const agentHistoryGeojson = { type: 'FeatureCollection', features: [] };
+
+  useEffect(() => {
+    const onToggle = (next?: boolean) => {
+      setShowAgentHistory((prev) => (typeof next === 'boolean' ? next : !prev));
+    };
+    eventEmitter.addListener('toggleAgentHistory', onToggle);
+    return () => {
+      eventEmitter.removeListener('toggleAgentHistory', onToggle);
+    };
+  }, []);
+
+  const lastPositionsRef = useRef<{
+    fireBrigades: Record<number, [number, number]>;
+    foresterPatrols: Record<number, [number, number]>;
+  }>({ fireBrigades: {}, foresterPatrols: {} });
+
+  useEffect(() => {
+
+    const startTime = performance.now();
+    let changed = false;
+    const maxPoints = 500;
+    const MIN_POSITION_CHANGE = 0.0001; 
+
+    // Process fire brigades
+    (mapConfiguration.fireBrigades || []).forEach((fb: FireBrigade) => {
+      const id = fb.fireBrigadeId;
+      const list = historyRef.current.fireBrigades[id] || [];
+      
+      const pos = agentPositionController.getPosition(id, 'fireBrigade');
+      if (!pos) return;
+
+      const point: [number, number] = [pos.lng, pos.lat];
+      const lastPosition = lastPositionsRef.current.fireBrigades[id];
+
+      if (!lastPosition || Math.hypot(lastPosition[0] - point[0], lastPosition[1] - point[1]) > MIN_POSITION_CHANGE) {
+        list.push(point);
+        if (list.length > maxPoints) list.shift();
+        historyRef.current.fireBrigades[id] = list;
+        lastPositionsRef.current.fireBrigades[id] = point;
+        changed = true;
+      }
+    });
+
+    // Process forester patrols
+    (mapConfiguration.foresterPatrols || []).forEach((fp: ForesterPatrol) => {
+      const id = fp.foresterPatrolId;
+      const list = historyRef.current.foresterPatrols[id] || [];
+      
+      const pos = agentPositionController.getPosition(id, 'foresterPatrol');
+      if (!pos) return;
+
+      const point: [number, number] = [pos.lng, pos.lat];
+      const lastPosition = lastPositionsRef.current.foresterPatrols[id];
+
+      if (!lastPosition || Math.hypot(lastPosition[0] - point[0], lastPosition[1] - point[1]) > MIN_POSITION_CHANGE) {
+        list.push(point);
+        if (list.length > maxPoints) list.shift();
+        historyRef.current.foresterPatrols[id] = list;
+        lastPositionsRef.current.foresterPatrols[id] = point;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      setHistoryVersion((v) => v + 1);
+    }
+  }, [mapConfiguration.fireBrigades, mapConfiguration.foresterPatrols, showAgentHistory, historyVersion]);
+
+  useOnTooltipChange(setTooltip);
   useEffect(() => {
     const onClick = (brigade: any) => {
       // show a small tooltip as confirmation; other components can subscribe to 'onFireBrigadeClick'
@@ -89,11 +251,14 @@ export const MainMap = () => {
       try {
         eventEmitter.emit('onTooltipChange', tooltip);
       } catch (e) {
+        // pass
       }
     };
 
     eventEmitter.addListener('onFireBrigadeClick', onClick);
-    return () => eventEmitter.removeListener('onFireBrigadeClick', onClick);
+    return () => {
+      eventEmitter.removeListener('onFireBrigadeClick', onClick);
+    };
   }, []);
 
   const onSectorChange = useCallback(
@@ -101,7 +266,7 @@ export const MainMap = () => {
       try {
         dispatch(setCurrentSectorId({ currentSectorId: sectorId }));
       } catch (error) {
-        throw error;
+        // throw error;
       }
     },
     [dispatch],
@@ -110,14 +275,22 @@ export const MainMap = () => {
 
   if (Object.values(bounds).every((bound) => bound === 0))
     return (
-      <Grid
-        item
-        xs={12}
-        sx={{ mb: -2.25 }}
+      <Box
+        sx={{
+          width: '100%',
+          height: isConfigView ? '100%' : '800px',
+          position: 'relative',
+        }}
       >
         <MainCard
           hasContent={false}
-          sx={{ mt: 1.5 }}
+          hasBorder={false}
+          sx={{
+            width: '100%',
+            height: '100%',
+            margin: 0,
+            padding: 0,
+          }}
         >
           <Box
             sx={{
@@ -126,30 +299,64 @@ export const MainMap = () => {
               justifyContent: 'center',
               alignItems: 'center',
               backgroundColor: 'secondary.light',
-              height: '800px' /* TODO fix fixed height */,
+              width: '100%',
+              height: '100%',
             }}
           >
             <Typography variant="h2">No configuration selected!</Typography>
             <Typography variant="h4">Please select a configuration to see the map</Typography>
           </Box>
         </MainCard>
-      </Grid>
+      </Box>
     );
 
   return (
-    <Grid
-      item
-      xs={12}
-      sx={{ mb: -2.25 }}
+    <Box
+      sx={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        flex: 1,
+        minHeight: 0,
+        paddingTop: '64px',
+        boxSizing: 'border-box',
+      }}
     >
       <MainCard
         hasContent={false}
-        sx={{ mt: 1.5 }}
+        hasBorder={false}
+        sx={{
+          overflow: 'hidden',
+          width: '100%',
+          height: '100%',
+          flex: 1,
+          minHeight: 0,
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 0,
+          '&.main-card': {
+            borderRadius: 0,
+          },
+        }}
       >
-        <Box sx={{ height: '800px' /* TODO fix fixed height */ }}>
+        <Box sx={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
           <Map
             id="main-map"
-            defaultBounds={bounds}
+            defaultBounds={bounds || { north: 0, east: 0, south: 0, west: 0 }}
             onDragstart={() => {
               // hide tooltip when dragging the map
               if (tooltip !== null) setTooltip(null);
@@ -161,15 +368,19 @@ export const MainMap = () => {
               forestBorderLayer={forestBorderLayer}
               sectorsLayer={sectorsLayer}
               selectedSectorLayer={selectedSectorLayer}
-              fireBrigadeLayer={fireBrigadeLayer}
+
               foresterPatrolLayer={foresterPatrolLayer}
               sensorLayer={sensorLayer}
               cameraLayer={cameraLayer}
+              agentHistoryGeojson={agentHistoryGeojson}
+              showAgentHistory={showAgentHistory}
+              currentSectorId={currentSectorId}
+              isConfigView={isConfigView}
             />
           </Map>
         </Box>
       </MainCard>
-    </Grid>
+    </Box>
   );
 };
 
@@ -179,10 +390,14 @@ type MainMapInnerProps = {
   forestBorderLayer: any;
   sectorsLayer: any;
   selectedSectorLayer: any;
-  fireBrigadeLayer: any;
+
   foresterPatrolLayer: any;
   sensorLayer: any;
   cameraLayer: any;
+  agentHistoryGeojson: any;
+  showAgentHistory: boolean;
+  currentSectorId: number | null;
+  isConfigView: boolean;
 };
 
 const MainMapInner = ({
@@ -191,31 +406,130 @@ const MainMapInner = ({
   forestBorderLayer,
   sectorsLayer,
   selectedSectorLayer,
-  fireBrigadeLayer,
+
   foresterPatrolLayer,
   sensorLayer,
   cameraLayer,
+  agentHistoryGeojson,
+  showAgentHistory,
+  currentSectorId,
+  isConfigView,
 }: MainMapInnerProps) => {
   const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    const sourceId = 'agent-history';
+    const layerId = 'agent-history-line';
+
+    const ensureLayer = () => {
+      // Safety check: ensure map is loaded and style is ready
+      if (!map || !map.loaded || !map.getStyle) return;
+      try {
+        const style = map.getStyle();
+        if (!style || !style.version) return; // Style not ready yet
+      } catch (e) {
+        // Style not ready, wait for next event
+        return;
+      }
+
+      const source = map.getSource(sourceId) as any;
+      if (source) {
+        source.setData(agentHistoryGeojson);
+      } else {
+        try {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: agentHistoryGeojson,
+          });
+        } catch (e) {
+          // Source might already exist, continue
+        }
+      }
+
+      if (!map.getLayer(layerId)) {
+        try {
+          map.addLayer({
+            id: layerId,
+            type: 'line',
+            source: sourceId,
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+              'visibility': showAgentHistory ? 'visible' : 'none',
+            },
+            paint: {
+              'line-color': ['get', 'color'],
+              'line-width': 2.5,
+              'line-opacity': 0.75,
+            },
+          });
+        } catch (e) {
+          // Layer might already exist or source not ready
+        }
+      } else {
+        map.setLayoutProperty(layerId, 'visibility', showAgentHistory ? 'visible' : 'none');
+      }
+    };
+
+    // Wait for map to be fully loaded before adding layers
+    if (map.loaded) {
+      ensureLayer();
+    } else {
+      map.once('load', ensureLayer);
+    }
+    map.on?.('styledata', ensureLayer);
+    map.on?.('load', ensureLayer);
+
+    return () => {
+      map.off?.('styledata', ensureLayer);
+      map.off?.('load', ensureLayer);
+    };
+  }, [map, agentHistoryGeojson, showAgentHistory]);
 
   // Disable panning in MainMap - only NewConfigurationMap should allow panning
   // But allow clicks and hovers for sector selection
   useEffect(() => {
     if (!map) return;
-    
+
     // Disable panning but keep other interactions enabled
     map.dragPan?.disable();
-    
+
     // Ensure zoom and other interactions still work
     map.scrollZoom?.enable();
     map.boxZoom?.enable();
     map.doubleClickZoom?.enable();
     map.touchZoomRotate?.enable();
-    
+
     return () => {
       map.dragPan?.enable();
     };
   }, [map]);
+
+  // Recalculate map bounds when sector selection changes or container resizes (in config view)
+  useEffect(() => {
+    if (!map || !isConfigView || !bounds || Object.values(bounds).every((bound) => bound === 0)) return;
+
+    // Resize map first to account for container size changes
+    map.resize();
+
+    // Small delay to ensure resize has taken effect
+    const timeoutId = setTimeout(() => {
+      const sw = [bounds.west, bounds.south] as [number, number];
+      const ne = [bounds.east, bounds.north] as [number, number];
+      map.fitBounds([sw, ne], {
+        duration: 0,
+        padding: {
+          top: 50,
+          bottom: 100,
+          left: 50,
+          right: 50
+        }
+      });
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [map, bounds, currentSectorId, isConfigView]);
 
   return (
     <>
@@ -251,7 +565,7 @@ const MainMapInner = ({
             const current = map.getZoom();
             map.easeTo({ zoom: current + 1 });
           }}
-          color="primary"
+          sx={{ color: 'red' }}
           aria-label="Zoom in"
         >
           <ZoomInIcon />
@@ -263,7 +577,7 @@ const MainMapInner = ({
             const current = map.getZoom();
             map.easeTo({ zoom: current - 1 });
           }}
-          color="primary"
+          sx={{ color: 'red' }}
           aria-label="Zoom out"
         >
           <ZoomOutIcon />
@@ -274,10 +588,17 @@ const MainMapInner = ({
             if (map) {
               const sw = [bounds.west, bounds.south] as [number, number];
               const ne = [bounds.east, bounds.north] as [number, number];
-              map.fitBounds([sw, ne], { padding: 50 });
+              map.fitBounds([sw, ne], {
+                padding: {
+                  top: 50,
+                  bottom: 100, // Increased bottom padding to show lower sectors
+                  left: 50,
+                  right: 50
+                }
+              });
             }
           }}
-          color="primary"
+          sx={{ color: 'red' }}
           aria-label="Fit bounds"
         >
           <FitScreenIcon />
@@ -288,14 +609,16 @@ const MainMapInner = ({
         capturePointerEvents={true} // Enable pointer events for sector hover/click
         layers={[
           forestBorderLayer,
-          sectorsLayer,
+          ...(Array.isArray(sectorsLayer) ? sectorsLayer : [sectorsLayer]),
           selectedSectorLayer,
-          ...(Array.isArray(fireBrigadeLayer) ? fireBrigadeLayer : [fireBrigadeLayer]),
+
           ...(Array.isArray(foresterPatrolLayer) ? foresterPatrolLayer : [foresterPatrolLayer]),
           ...(Array.isArray(sensorLayer) ? sensorLayer : [sensorLayer]),
           ...(Array.isArray(cameraLayer) ? cameraLayer : [cameraLayer]),
         ].filter(Boolean)}
       />
+      {/* Agent markers updated directly on MapLibre for high-frequency updates */}
+      {!isConfigView && <AgentMarkerManager />}
     </>
   );
 };

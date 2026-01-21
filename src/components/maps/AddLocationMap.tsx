@@ -2,10 +2,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
 
-// Maps handling
 import SafeMap from './SafeMap';
 import DeckGL from '@deck.gl/react';
 import { MapViewState } from '@deck.gl/core';
+
 import {
   DrawPointMode,
   EditableGeoJsonLayer,
@@ -13,15 +13,12 @@ import {
   Position,
   ViewMode,
 } from '@deck.gl-community/editable-layers';
-import { useMap } from './MapLibre';
-import { useSelectedSectorLayer } from '../hooks/useSelectedSectorLayer';
-import { ProcessedSector } from '../../model/processedSector';
 
-// MUI components
+import { useMap } from './MapLibre';
+import { useSelectedSectorLayer } from '../../features/maps/useSelectedSectorLayer';
+import { ProcessedSector } from '../../model/processedSector';
 import { MainCard } from '../MainCard';
 import { Box, Button } from '@mui/material';
-
-// Map types and default map location getter
 import { MapLocation } from '../../model/geography';
 import { getDefaultMapLocation } from '../../model/common';
 import { Sector } from '../../model/sector';
@@ -36,12 +33,115 @@ type AddLocationMapProps = {
   handleSelectedLocation: (location: MapLocation) => void;
 };
 
-// Initial state: center on Poland
+// Why is this mocked? IDK! 
 const INITIAL_VIEW_STATE: MapViewState = {
-  longitude: 19.945, // Kraków longitude
-  latitude: 50.064652, // Kraków latitude
+  longitude: 19.945, 
+  latitude: 50.064652, 
   zoom: 5,
 };
+
+const AddLocationMapInner = ({
+  viewState,
+  setViewState,
+  currentSector,
+  isDrawing,
+  setIsDrawing,
+  selectedSectorLayer,
+  drawLocationLayer,
+}: {
+  viewState: MapViewState;
+  setViewState: (vs: MapViewState) => void;
+  currentSector: Sector | undefined;
+  isDrawing: boolean;
+  setIsDrawing: (d: boolean) => void;
+  selectedSectorLayer: any;
+  drawLocationLayer: EditableGeoJsonLayer;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    const updateViewState = () => {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      setViewState({
+        longitude: center.lng,
+        latitude: center.lat,
+        zoom: zoom,
+      });
+    };
+
+    updateViewState();
+    map.on('move', updateViewState);
+
+    return () => {
+      map.off('move', updateViewState);
+    };
+  }, [map, setViewState]);
+
+  useEffect(() => {
+    if (!map || !currentSector) return;
+
+    try {
+      const currentSectorBounds = Sector.getBoundsFromContours(currentSector);
+      const sw = [currentSectorBounds.west, currentSectorBounds.south] as [number, number];
+      const ne = [currentSectorBounds.east, currentSectorBounds.north] as [number, number];
+      map.fitBounds([sw, ne], { padding: 80, duration: 500 });
+    } catch (e) {
+      // pass
+    }
+  }, [map, currentSector]);
+
+
+  useEffect(() => {
+    if (!map) return;
+
+    map.dragPan?.disable();
+
+    if (isDrawing) {
+      map.scrollZoom?.disable();
+      map.boxZoom?.disable();
+      map.doubleClickZoom?.disable();
+      map.touchZoomRotate?.disable();
+    } else {
+      map.scrollZoom?.enable();
+      map.boxZoom?.enable();
+      map.doubleClickZoom?.enable();
+      map.touchZoomRotate?.enable();
+    }
+
+    return () => {
+      map.dragPan?.enable();
+    };
+  }, [map, isDrawing]);
+
+  return (
+    <div style={{ 
+      position: 'absolute', 
+      top: 0, 
+      left: 0, 
+      width: '100%', 
+      height: '100%', 
+      pointerEvents: isDrawing ? 'auto' : 'none', 
+      zIndex: 1002, 
+      background: 'transparent' 
+    }}>
+      <DeckGL
+        viewState={viewState}
+        controller={false}
+        layers={[selectedSectorLayer, drawLocationLayer].filter(Boolean)}
+        style={{ 
+          pointerEvents: isDrawing ? 'auto' : 'none', 
+          zIndex: '1003', 
+          background: 'transparent', 
+          cursor: isDrawing ? 'crosshair' : 'default' 
+        }}
+      />
+    </div>
+  );
+};
+
 
 export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) => {
   const { configuration: mapConfiguration, currentSectorId } = useSelector(
@@ -99,7 +199,6 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
         featureCollection.features.length === 1 &&
         featureCollection.features[0].geometry.type === 'Point'
       ) {
-        // Parse and save point coordinates as a location
         const locationCoords = featureCollection.features[0].geometry.coordinates as Position;
         const location = parsePositionToMapLocation(locationCoords);
 
@@ -122,7 +221,7 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
       type: 'FeatureCollection',
       features: [],
     });
-    handleSelectedLocation(getDefaultMapLocation()); // TODO it will be better to make same required constraint or sth
+    handleSelectedLocation(getDefaultMapLocation()); 
     setIsDrawing(false);
   };
 
@@ -178,113 +277,5 @@ export const AddLocationMap = ({ handleSelectedLocation }: AddLocationMapProps) 
         </Box>
       </Box>
     </MainCard>
-  );
-};
-
-// Inner component that has access to map context
-const AddLocationMapInner = ({
-  viewState,
-  setViewState,
-  currentSector,
-  isDrawing,
-  setIsDrawing,
-  selectedSectorLayer,
-  drawLocationLayer,
-}: {
-  viewState: MapViewState;
-  setViewState: (vs: MapViewState) => void;
-  currentSector: Sector | undefined;
-  isDrawing: boolean;
-  setIsDrawing: (d: boolean) => void;
-  selectedSectorLayer: any;
-  drawLocationLayer: EditableGeoJsonLayer;
-}) => {
-  const map = useMap();
-
-  // Synchronize viewState with MapLibre
-  useEffect(() => {
-    if (!map) return;
-
-    const updateViewState = () => {
-      const center = map.getCenter();
-      const zoom = map.getZoom();
-      setViewState({
-        longitude: center.lng,
-        latitude: center.lat,
-        zoom: zoom,
-      });
-    };
-
-    updateViewState();
-    map.on('move', updateViewState);
-
-    return () => {
-      map.off('move', updateViewState);
-    };
-  }, [map, setViewState]);
-
-  // Auto-fit to selected sector when it changes
-  useEffect(() => {
-    if (!map || !currentSector) return;
-
-    try {
-      const currentSectorBounds = Sector.getBoundsFromContours(currentSector);
-      const sw = [currentSectorBounds.west, currentSectorBounds.south] as [number, number];
-      const ne = [currentSectorBounds.east, currentSectorBounds.north] as [number, number];
-      map.fitBounds([sw, ne], { padding: 80, duration: 500 });
-    } catch (e) {
-    }
-  }, [map, currentSector]);
-
-  // Control map interactions during drawing
-  // NOTE: Panning is ALWAYS disabled - only NewConfigurationMap allows panning
-  useEffect(() => {
-    if (!map) return;
-
-    // Always disable panning - only NewConfigurationMap should allow it
-    map.dragPan?.disable();
-
-    if (isDrawing) {
-      // Disable all map interactions during drawing
-      map.scrollZoom?.disable();
-      map.boxZoom?.disable();
-      map.doubleClickZoom?.disable();
-      map.touchZoomRotate?.disable();
-    } else {
-      // Re-enable zoom interactions after drawing (but keep panning disabled)
-      map.scrollZoom?.enable();
-      map.boxZoom?.enable();
-      map.doubleClickZoom?.enable();
-      map.touchZoomRotate?.enable();
-    }
-
-    return () => {
-      map.dragPan?.enable();
-    };
-  }, [map, isDrawing]);
-
-  return (
-    <div style={{ 
-      position: 'absolute', 
-      top: 0, 
-      left: 0, 
-      width: '100%', 
-      height: '100%', 
-      pointerEvents: isDrawing ? 'auto' : 'none', 
-      zIndex: 1002, 
-      background: 'transparent' 
-    }}>
-      <DeckGL
-        viewState={viewState}
-        controller={false}
-        layers={[selectedSectorLayer, drawLocationLayer].filter(Boolean)}
-        style={{ 
-          pointerEvents: isDrawing ? 'auto' : 'none', 
-          zIndex: '1003', 
-          background: 'transparent', 
-          cursor: isDrawing ? 'crosshair' : 'default' 
-        }}
-      />
-    </div>
   );
 };

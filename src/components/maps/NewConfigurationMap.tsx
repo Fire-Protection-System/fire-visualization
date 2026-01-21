@@ -22,8 +22,8 @@ import { useFormikContext } from 'formik';
 // Types & Hooks
 import { Configuration, getDefaultConfiguration } from '../../model/configuration';
 import { Region } from '../../model/geography';
-import { useSectorsLayer } from '../hooks/useSectorsLayer';
-import { useForestBorderLayer } from '../hooks/useForestBorderLayer';
+import { useSectorsLayer } from '../../features/maps/useSectorsLayer';
+import { useForestBorderLayer } from '../../features/maps/useForestBorderLayer';
 import { useMap } from './MapLibre';
 
 // Initial map view (Kraków)

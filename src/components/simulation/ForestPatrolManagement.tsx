@@ -3,7 +3,7 @@ import RenderSimulationItem from "./RenderSimulationItem";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/reduxStore";
 import { useMemo } from "react";
-import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
+import { getObjectsInSector } from '@shared/utils/getObjectsInSector';
 
 export default function ForestPatrolManagement() {
    const {

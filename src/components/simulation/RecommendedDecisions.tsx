@@ -27,6 +27,11 @@ const RecommendedDecisions = () => {
     }
     
     const config = mapConfiguration?.configuration;
+    const sectorIds = new Set((config?.sectors || []).map((s: any) => s.sectorId));
+    if (!sectorIds.has(sectorId)) {
+      console.warn(`[RecommendedDecisions] Sector ${sectorId} not found in configuration. Available: [${Array.from(sectorIds).join(', ')}]. Skipping recommendation for unit ${unitId}.`);
+      return;
+    }
     
     // Determine if unitId is a fire brigade or forester patrol (prefer explicit unitType from recommendation)
     const isFireBrigade = unitTypeHint === 'fireBrigade'
@@ -48,7 +53,8 @@ const RecommendedDecisions = () => {
       sendBrigadeOrForesterMoveOrder(
         unitId, 
         sectorId, 
-        unitType as "brigade" | "forester"
+        unitType as "brigade" | "forester",
+        'manual'
       ));
   }, [dispatch, mapConfiguration]);
 

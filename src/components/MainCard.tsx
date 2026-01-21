@@ -6,12 +6,7 @@ import { Card, CardContent, CardHeader, Divider, Typography } from '@mui/materia
 
 // project import
 import { Highlighter } from './Highlighter';
-
-// header style
-const headerSX = {
-  p: 2.5,
-  '& .MuiCardHeader-action': { m: '0px auto', alignSelf: 'center' },
-};
+import '../assets/styles/MainCard.css';
 
 // ==============================|| CUSTOM - MAIN CARD ||============================== //
 
@@ -56,12 +51,11 @@ export const MainCard = forwardRef<HTMLDivElement, HTMLProps<HTMLDivElement> & M
     return (
       <Card
         elevation={elevation ?? 0}
-        // component={'div'} // TODO it doesn't work
+        className="main-card"
         ref={ref}
         {...others}
         sx={{
           border: hasBorder ? '1px solid' : 'none',
-          borderRadius: 2,
           borderColor: theme.palette.mode === 'dark' ? theme.palette.divider : theme.palette.grey['800'],
           boxShadow:
             hasBoxShadow && (!hasBorder || theme.palette.mode === 'dark')
@@ -71,10 +65,7 @@ export const MainCard = forwardRef<HTMLDivElement, HTMLProps<HTMLDivElement> & M
             boxShadow: hasBoxShadow ? shadow ?? theme.customShadows?.z1 ?? 'inherit' : 'inherit',
           },
           '& pre': {
-            m: 0,
-            p: '16px !important',
             fontFamily: theme.typography.fontFamily,
-            fontSize: '0.75rem',
           },
           ...sx,
         }}
@@ -82,7 +73,7 @@ export const MainCard = forwardRef<HTMLDivElement, HTMLProps<HTMLDivElement> & M
         {/* card header and action */}
         {!hasDarkTitle && title && (
           <CardHeader
-            sx={headerSX}
+            className="main-card-header"
             titleTypographyProps={{ variant: 'subtitle1' }}
             title={title}
             action={secondary}
@@ -90,21 +81,23 @@ export const MainCard = forwardRef<HTMLDivElement, HTMLProps<HTMLDivElement> & M
         )}
         {hasDarkTitle && title && (
           <CardHeader
-            sx={headerSX}
+            className="main-card-header"
             title={<Typography variant="h3">{title}</Typography>}
             action={secondary}
           />
         )}
 
         {/* card content */}
-        {hasContent && <CardContent sx={contentSX}>{children}</CardContent>}
+        {hasContent && <CardContent className="main-card-content" sx={contentSX}>{children}</CardContent>}
         {!hasContent && children}
 
         {/* card footer - clipboard & highlighter  */}
         {codeHighlight && (
           <>
             <Divider sx={{ borderStyle: 'dashed' }} />
-            <Highlighter>{children}</Highlighter>
+            <div className="main-card-highlighter">
+              <Highlighter>{children}</Highlighter>
+            </div>
           </>
         )}
       </Card>

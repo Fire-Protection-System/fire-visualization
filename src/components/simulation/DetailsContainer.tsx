@@ -6,7 +6,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { useState, useCallback, useMemo } from "react";
-import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
+import { getObjectsInSector } from '@shared/utils/getObjectsInSector';
 import { Camera, isCamera } from "../../model/camera";
 import { FireBrigade } from "../../model/FireBrigade";
 import { ForesterPatrol, isForesterPatrol } from "../../model/ForesterPatrol";

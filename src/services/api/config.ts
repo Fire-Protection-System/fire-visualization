@@ -4,26 +4,26 @@
  */
 
 const getBackendUrl = (): string => {
-  // Check for environment variable first (from webpack DefinePlugin)
-  // In browser, process.env is replaced by webpack DefinePlugin at build time
-  const envUrl = typeof process !== 'undefined' && process.env?.FIRE_BACKEND_SERVICE
+  const envUrl = typeof window !== 'undefined' && (window as any).__ENV__?.FIRE_BACKEND_SERVICE
+    ? (window as any).__ENV__.FIRE_BACKEND_SERVICE
+    : typeof process !== 'undefined' && process.env?.FIRE_BACKEND_SERVICE
     ? process.env.FIRE_BACKEND_SERVICE
     : '';
   
   if (envUrl) {
-    // If it's just a hostname (from docker-compose), add protocol and port
     if (!envUrl.startsWith('http')) {
       return `http://${envUrl}:8181`;
     }
     return envUrl;
   }
   
-  // Fallback to localhost for development
   return 'http://localhost:8181';
 };
 
 const getConfigurationServiceUrl = (): string => {
-  const envUrl = typeof process !== 'undefined' && process.env?.FIRE_CONFIGURATION_SERVICE
+  const envUrl = typeof window !== 'undefined' && (window as any).__ENV__?.FIRE_CONFIGURATION_SERVICE
+    ? (window as any).__ENV__.FIRE_CONFIGURATION_SERVICE
+    : typeof process !== 'undefined' && process.env?.FIRE_CONFIGURATION_SERVICE
     ? process.env.FIRE_CONFIGURATION_SERVICE
     : '';
   
@@ -45,8 +45,10 @@ export const API_CONFIG = {
     SIMULATION: {
       SEND_REQUEST: '/simulation/send-simulation-request',
       RUN: '/simulation/run-simulation',
+      SNAPSHOT: '/simulation/snapshot',
       STOP: '/simulation/stop-simulation',
       SET_SPEED: '/simulation/set-speed',
+      LLM_MODE: '/simulation/llm-mode',
       ORDER_FIRE_BRIGADE: '/simulation/orderFireBrigade',
       ORDER_FOREST_PATROL: '/simulation/orderForestPatrol',
       ASSIGN_BRIGADES: '/simulation/assignBrigades',

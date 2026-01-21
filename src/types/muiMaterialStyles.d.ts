@@ -14,11 +14,8 @@ declare module '@mui/material/styles' {
     lighter?: string;
     100?: string;
     200?: string;
-    // light: string;
     400?: string;
-    // main: string;
     600?: string;
-    // dark: string;
     700?: string;
     800?: string;
     darker?: string;
@@ -26,18 +23,14 @@ declare module '@mui/material/styles' {
     A100?: string;
     A200?: string;
     A300?: string;
-    // contrastText: string
   }
 
   interface SimplePaletteColorOptions {
     lighter?: string;
     100?: string;
     200?: string;
-    // light: string;
     400?: string;
-    // main: string;
     600?: string;
-    // dark: string;
     700?: string;
     800?: string;
     darker?: string;
@@ -45,6 +38,5 @@ declare module '@mui/material/styles' {
     A100?: string;
     A200?: string;
     A300?: string;
-    // contrastText: string
   }
 }

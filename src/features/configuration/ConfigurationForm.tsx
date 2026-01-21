@@ -14,15 +14,15 @@ import {
 } from '../../store/mapConfigurationSlice';
 import { configurationService } from '../../services/api';
 import { mapFileSystemNodeToApiDataNode } from '../../model/FileSystemNode';
-import { CreateSensorModal } from './create_items_modals/CreateSensorModal';
+import { CreateSensorModal } from './CreateSensorModal';
 import { Sensor, isSensor } from '../../model/sensor';
 import { FireBrigade, isFireBrigade } from '../../model/FireBrigade';
 import { ForesterPatrol, isForesterPatrol } from '../../model/ForesterPatrol';
 import { Camera, isCamera } from '../../model/camera';
-import { CreateCameraModal } from './create_items_modals/CreateCameraModal';
-import { CreateFireBrigadeModal } from './create_items_modals/CreateFireBrigadeModal';
-import { CreateForesterPatrolModal } from './create_items_modals/CreateForesterPatrolModal';
-import { SensorlikeList } from './SensorlikeList/SensorlikeList';
+import { CreateCameraModal } from './CreateCameraModal';
+import { CreateFireBrigadeModal } from './CreateFireBrigadeModal';
+import { CreateForesterPatrolModal } from './CreateForesterPatrolModal';
+import { SensorlikeList } from './SensorlikeList';
 import { Configuration } from '../../model/configuration';
 
 export const ConfigurationForm: FC = () => {
@@ -81,8 +81,8 @@ export const ConfigurationForm: FC = () => {
 
       try {
         await configurationService.updateNode(fileSystemNode.id, apiNode);
-        // Add sensor to the mapConfiguration stored in the redux state
-        dispatch(addSensor({ sensor: values }));
+      // Add sensor to the mapConfiguration stored in the redux state
+      dispatch(addSensor({ sensor: values }));
       } catch (error) {
         console.error('[ConfigurationForm] Failed to update node with sensor:', error);
       }
@@ -105,8 +105,8 @@ export const ConfigurationForm: FC = () => {
 
       try {
         await configurationService.updateNode(fileSystemNode.id, apiNode);
-        // Add camera to the mapConfiguration stored in the redux state
-        dispatch(addCamera({ camera: values }));
+      // Add camera to the mapConfiguration stored in the redux state
+      dispatch(addCamera({ camera: values }));
       } catch (error) {
         console.error('[ConfigurationForm] Failed to update node with camera:', error);
       }
@@ -130,8 +130,8 @@ export const ConfigurationForm: FC = () => {
 
       try {
         await configurationService.updateNode(fileSystemNode.id, apiNode);
-        // Add fire brigade to the mapConfiguration stored in the redux state
-        dispatch(addFireBrigade({ fireBrigade: values }));
+      // Add fire brigade to the mapConfiguration stored in the redux state
+      dispatch(addFireBrigade({ fireBrigade: values }));
       } catch (error) {
         console.error('[ConfigurationForm] Failed to update node with fire brigade:', error);
       }
@@ -155,8 +155,8 @@ export const ConfigurationForm: FC = () => {
 
       try {
         await configurationService.updateNode(fileSystemNode.id, apiNode);
-        // Add forester patrol to the mapConfiguration stored in the redux state
-        dispatch(addForesterPatrol({ foresterPatrol: values }));
+      // Add forester patrol to the mapConfiguration stored in the redux state
+      dispatch(addForesterPatrol({ foresterPatrol: values }));
       } catch (error) {
         console.error('[ConfigurationForm] Failed to update node with forester patrol:', error);
       }
@@ -166,7 +166,17 @@ export const ConfigurationForm: FC = () => {
   if (currentSectorId === null || idx === undefined) return null;
 
   return (
-    <MainCard sx={{ mt: 2 }}>
+    <MainCard 
+      hasBorder={false}
+      sx={{
+        height: '100%',
+        padding: '16px',
+        borderRadius: 0,
+        '&.main-card': { borderRadius: 0 },
+        border: 'none',
+        background: 'linear-gradient(to bottom, #ffffff, #f5f5f5)',
+      }}
+    >
       <Formik
         initialValues={mapConfiguration}
         onSubmit={(values) => {
@@ -176,15 +186,15 @@ export const ConfigurationForm: FC = () => {
 
           configurationService.updateNode(fileSystemNode.id, apiNode)
             .then(() => {
-              dispatch(
-                setConfiguration({
-                  configuration: values,
-                }),
-              );
+            dispatch(
+              setConfiguration({
+                configuration: values,
+              }),
+            );
             })
             .catch((error) => {
               console.error('[ConfigurationForm] Failed to save configuration:', error);
-            });
+          });
         }}
         enableReinitialize={true}
       >

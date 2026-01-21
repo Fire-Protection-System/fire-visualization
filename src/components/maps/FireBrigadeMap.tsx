@@ -14,41 +14,35 @@ import { Grid, Box, Typography } from '@mui/material';
 import { MainCard } from '../MainCard';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Configuration } from '../../model/configuration';
-import { useForestBorderLayer } from '../hooks/useForestBorderLayer';
-import { useSectorsLayer } from '../hooks/useSectorsLayer';
-import { useSelectedSectorLayer, useTargetSectorLayer } from '../hooks/useSelectedSectorLayer';
-import { useOnSectorChange } from '../hooks/useOnSectorChange';
-import { useOnTooltipChange } from '../hooks/useOnTooltipChange';
+import { useForestBorderLayer } from '../../features/maps/useForestBorderLayer';
+import { useSectorsLayer } from '../../features/maps/useSectorsLayer';
+import { useSelectedSectorLayer } from '../../features/maps/useSelectedSectorLayer';
+import { useTargetSectorLayer } from '../../features/maps/useSelectedSectorLayer';
+import { useOnSectorChange } from '../../features/maps/useOnSectorChange';
+import { useOnTooltipChange } from '../../features/maps/useOnTooltipChange';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
 import { setCurrentSectorId } from '../../store/mapConfigurationSlice';
-import { FireBrigadeMarkers } from './FireBrigadeMarkers';
-import { FireBrigadeBaseMarkers } from './FireBrigadeBaseMarkers';
-import { useFireBrigadeLayer } from '../hooks/useFireBrigadeLayer';
+import { useFireBrigadeLayer } from '../../features/maps/useFireBrigadeLayer';
 
 type Props = {
-   //   disableTooltip?: boolean;
    targetSectorId: number|null;
    onClickHandler: (sectorId: number) => void;
 }
-export const FireBrigadeMap = (props: Props) => {
-   const map = useMap('main-map');
+
+const FireBrigadeMapInner = (props: Props) => {
+   const map = useMap('fire-brigade-map');
    const { configuration: mapConfiguration, currentSectorId } = useSelector(
       (state: RootState) => state.mapConfiguration,
    );
-   const dispatch = useDispatch();
 
+   const dispatch = useDispatch();
    const [tooltip, setTooltip] = useState<ReactNode>(null);
 
-   // Disable panning in FireBrigadeMap - only NewConfigurationMap should allow panning
-   // But allow clicks and hovers for sector selection
    useEffect(() => {
       if (!map) return;
       
-      // Disable panning but keep other interactions enabled
       map.dragPan?.disable();
-      
-      // Ensure zoom and other interactions still work
       map.scrollZoom?.enable();
       map.boxZoom?.enable();
       map.doubleClickZoom?.enable();
@@ -65,9 +59,8 @@ export const FireBrigadeMap = (props: Props) => {
       if (JSON.stringify(newBounds) !== JSON.stringify(bounds)) {
          setBounds(newBounds);
       }
-   }, [mapConfiguration, bounds]); // keep same logic as MainMap to avoid unnecessary re-fit
+   }, [mapConfiguration, bounds]); 
 
-   // If a specific target sector is selected, zoom to that sector bounds briefly
    useEffect(() => {
       if (!map) return;
       if (props.targetSectorId == null) return;
@@ -79,6 +72,7 @@ export const FireBrigadeMap = (props: Props) => {
       try {
          map.fitBounds([sw, ne], { padding: 80 });
       } catch (e) {
+         // pass
       }
    }, [map, props.targetSectorId, mapConfiguration.sectors]);
 
@@ -103,31 +97,52 @@ export const FireBrigadeMap = (props: Props) => {
 
    if (Object.values(bounds).every((bound) => bound === 0))
       return (
-         <Grid
-            item
-            xs={12}
-            sx={{ mb: -2.25 }}
+         <Box
+            sx={{
+               display: 'flex',
+               flexDirection: 'column',
+               justifyContent: 'center',
+               alignItems: 'center',
+               backgroundColor: 'secondary.light',
+               height: '800px',
+            }}
          >
-            <MainCard
-               hasContent={false}
-               sx={{ mt: 1.5 }}
-            >
-               <Box
-                  sx={{
-                     display: 'flex',
-                     flexDirection: 'column',
-                     justifyContent: 'center',
-                     alignItems: 'center',
-                     backgroundColor: 'secondary.light',
-                     height: '800px' /* TODO fix fixed height */,
-                  }}
-               >
-                  <Typography variant="h2">No configuration selected!</Typography>
-                  <Typography variant="h4">Please select a configuration to see the map</Typography>
-               </Box>
-            </MainCard>
-         </Grid>
+            <Typography variant="h2">No configuration selected!</Typography>
+            <Typography variant="h4">Please select a configuration to see the map</Typography>
+         </Box>
       );
+
+   return (
+      <>
+         {tooltip}
+         <DeckGlOverlay 
+           overlayId="fire-brigade-map"
+           capturePointerEvents={true}
+           layers={[
+             forestBorderLayer, 
+             ...(Array.isArray(sectorsLayer) ? sectorsLayer : [sectorsLayer]),
+             selectedSectorLayer, 
+             targetSectorLayer,
+             ...(Array.isArray(fireBrigadeLayer) ? fireBrigadeLayer : [fireBrigadeLayer]),
+           ].filter(Boolean)} />
+         {/* Old render system - updated with fast updates */}
+         {/* <FireBrigadeMarkers /> */}
+         {/* <FireBrigadeBaseMarkers /> */}
+      </>
+   );
+};
+
+export const FireBrigadeMap = (props: Props) => {
+   const { configuration: mapConfiguration } = useSelector(
+      (state: RootState) => state.mapConfiguration,
+   );
+   const [bounds, setBounds] = useState(Configuration.getBounds(mapConfiguration));
+   useEffect(() => {
+      const newBounds = Configuration.getBounds(mapConfiguration);
+      if (JSON.stringify(newBounds) !== JSON.stringify(bounds)) {
+         setBounds(newBounds);
+      }
+   }, [mapConfiguration, bounds]);
 
    return (
       <Grid
@@ -141,29 +156,13 @@ export const FireBrigadeMap = (props: Props) => {
          >
             <Box sx={{ height: '800px' /* TODO fix fixed height */ }}>
                <Map
-                  id="main-map"
-                  mapId={process.env.GOOGLE_MAP_ID_MAIN_MAP}
+                  id="fire-brigade-map"
                   defaultBounds={bounds}
                   onDragstart={() => {
-                     // hide tooltip when dragging the map
-                     if (tooltip !== null) setTooltip(null);
+                     // Handled in FireBrigadeMapInner
                   }}
                >
-                  {tooltip}
-                  <DeckGlOverlay 
-                    overlayId="fire-brigade-map"
-                    capturePointerEvents={true} // Enable pointer events for sector hover/click
-                    layers={[
-                      forestBorderLayer, 
-                      // Sector layers (shapes + labels) - spread array
-                      ...(Array.isArray(sectorsLayer) ? sectorsLayer : [sectorsLayer]),
-                      selectedSectorLayer, 
-                      targetSectorLayer,
-                      // Fire brigade layers (circle + label) - spread array
-                      ...(Array.isArray(fireBrigadeLayer) ? fireBrigadeLayer : [fireBrigadeLayer]),
-                    ].filter(Boolean)} />
-                  <FireBrigadeMarkers />
-                  <FireBrigadeBaseMarkers />
+                  <FireBrigadeMapInner {...props} />
                </Map>
             </Box>
          </MainCard>

@@ -6,32 +6,21 @@ type SectorType = (typeof SectorTypes)[number];
 
 export interface Sector {
   sectorId: number;
-  row: number;
-  column: number;
+  row: number;                    // row number in the map
+  column: number;                 // column number in the map
   sectorType: SectorType;
   initialState: SectorState;
-  /**
-   * [lng, lat][]
-   */
   contours: [number, number][];
-  
-  fireLevel: number | null;
-  burnLevel: number | null;
-  extinguishLevel: number | null;
-
-  // IDs of fire brigades assigned to this sector
-  assignedBrigades?: number[];
-
+  fireLevel: number | null;       // level of fire in this sector
+  burnLevel: number | null;       // level of burn in this sector
+  extinguishLevel: number | null; // level of extinguishment of the fire in this sector
+  assignedBrigades?: number[];    // IDs of fire brigades assigned to this sector
 }
 
-// TODO adjust this type
 export type SectorUpdate = {
   sectorId: number;
   state: SectorStateUpdate;
-  /**
-   * [lng, lat][]
-   */
-  contours: [number, number][]; // TODO idk why this gets sent
+  contours: [number, number][];   // [longitude, latitude] of the contours of the sector
   assignedBrigades?: number[];
 }
 
@@ -44,9 +33,7 @@ type SectorStateUpdate = {
   plantLitterMoisture: number;
   co2Concentration: number;
   pm2_5Concentration: number;
-  timestamp: number | null; // TODO why this is here and why it is nullable?!
-
-  // Debug only
+  timestamp: number | null;      // timestamp of the update
   fireLevel: number | null;
   burnLevel: number | null;
   extinguishLevel: number | null;
@@ -60,8 +47,6 @@ interface SectorState {
   plantLitterMoisture: number;
   co2Concentration: number;
   pm2_5Concentration: number;
-
-  // Debug only
   fireLevel: number | null;
   burnLevel: number | null;
   extinguishLevel: number | null;
@@ -72,13 +57,9 @@ export const Sector = {
     return contours.reduce(
       (acc: google.maps.LatLngBoundsLiteral, [longitude, latitude]) => {
         if (longitude < acc.east) acc.east = longitude;
-
         if (latitude > acc.north) acc.north = latitude;
-
         if (latitude < acc.south) acc.south = latitude;
-
         if (longitude > acc.west) acc.west = longitude;
-
         return acc;
       },
       {
@@ -97,11 +78,9 @@ export const Sector = {
         ...sector.initialState,
         ...state,
       },
-      // Update top-level fireLevel, burnLevel, extinguishLevel from state
       fireLevel: state.fireLevel ?? sector.fireLevel,
       burnLevel: state.burnLevel ?? sector.burnLevel,
       extinguishLevel: state.extinguishLevel ?? sector.extinguishLevel,
-      // if assigned brigades were updated, replace them
       assignedBrigades: assignedBrigades ?? sector.assignedBrigades,
     };
   },

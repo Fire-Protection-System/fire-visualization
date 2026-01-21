@@ -8,9 +8,10 @@ import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 
 import { StopSimulationButton } from '../../components/simulation/StopSimulationButton';
 import AutoRecommendationSwitch from '../../components/simulation/AutoRecommendationSwitch';
+import LlmModeSwitch from '../../components/simulation/LlmModeSwitch';
 import DownloadConfigurationButton from '../../components/simulation/DownloadConfigurationButton';
 
-import { AppBarStyled } from '../MainLayout/Header/AppBarStyled';
+import { AppBarStyled } from '../AppBarStyled';
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 
@@ -21,8 +22,17 @@ export const Header = () => {
   // common header
   const mainHeader = (
     <Toolbar sx={{ justifyContent: 'end' }}>    
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          flexWrap: 'nowrap',
+          '& > *': { minWidth: 190 },
+        }}
+      >
         <AutoRecommendationSwitch />
+        <LlmModeSwitch />
         <DownloadConfigurationButton />
         <StopSimulationButton />
       </Box>

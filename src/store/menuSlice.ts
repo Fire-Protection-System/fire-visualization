@@ -7,18 +7,17 @@ export type MenuState = {
   openComponent: string;
   drawerOpen: boolean;
   componentDrawerOpen: boolean;
+  drawerType: 'workspace' | 'settings' | null;
 };
 
-// initial state
 const initialState: MenuState = {
   openItem: ['dashboard'],
   defaultId: 'dashboard',
   openComponent: 'buttons',
   drawerOpen: false,
   componentDrawerOpen: true,
+  drawerType: null,
 };
-
-// ==============================|| SLICE - MENU ||============================== //
 
 export const menuSlice = createSlice({
   name: 'menu',
@@ -31,8 +30,12 @@ export const menuSlice = createSlice({
     openComponentDrawer(state, action) {
       state.componentDrawerOpen = action.payload.componentDrawerOpen;
     },
+
+    setDrawerType(state, action) {
+      state.drawerType = action.payload.drawerType;
+    },
   },
 });
 
-export const { openDrawer, openComponentDrawer } = menuSlice.actions;
+export const { openDrawer, openComponentDrawer, setDrawerType } = menuSlice.actions;
 export default menuSlice.reducer;

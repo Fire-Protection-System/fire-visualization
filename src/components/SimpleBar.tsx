@@ -23,6 +23,9 @@ const RootStyle = ({ children }: { children: ReactNode }) => (
 // scroll bar wrapper
 const SimpleBarStyle = styled(SimpleBar)(({ theme }) => ({
   maxHeight: '100%',
+  '& .simplebar-wrapper': {
+    margin: '0px',
+  },
   '& .simplebar-scrollbar': {
     '&:before': {
       backgroundColor: alpha(theme.palette.grey[500], 0.48),

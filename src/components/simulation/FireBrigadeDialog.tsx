@@ -6,7 +6,7 @@ import { Camera } from "../../model/camera";
 import { FireBrigade } from "../../model/FireBrigade";
 import { ForesterPatrol } from "../../model/ForesterPatrol";
 import { Sensor } from "../../model/sensor";
-import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
+import { getObjectsInSector } from '@shared/utils/getObjectsInSector';
 import RenderSimulationItem from "./RenderSimulationItem";
 import { MapWrapper } from "../maps/MapWrapper";
 import { MainMap } from "../maps/MainMap";
@@ -63,7 +63,7 @@ export default function FireBrigadeDialog(props: Props) {
       if(targetSector === null) {
          return;
       }
-      dispatch(sendBrigadeOrForesterMoveOrder(props.fireBrigadeID, targetSector, "brigade"));
+      dispatch(sendBrigadeOrForesterMoveOrder(props.fireBrigadeID, targetSector, "brigade", 'manual'));
       handleClose();
    }, [targetSector, props.fireBrigadeID, dispatch, handleClose]);
 

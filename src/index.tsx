@@ -5,6 +5,7 @@ import { reduxStore } from './store/reduxStore';
 import { ScrollTop } from './components/ScrollTop';
 import { ThemeCustomization } from './themes/ThemeCustomization';
 import { Routes } from './Routes';
+import Footer from './components/Footer';
 import "./index-overrides.css";
 
 const App = () => {
@@ -12,6 +13,7 @@ const App = () => {
     <ThemeCustomization>
       <ScrollTop>
         <Routes />
+        <Footer />
       </ScrollTop>
     </ThemeCustomization>
   );
@@ -19,14 +21,12 @@ const App = () => {
 
 const root = createRoot(document.getElementById('root')!);
 
-// Global runtime handlers to surface errors and rejection details in console for easier debugging
 window.addEventListener('error', (ev) => {
-  // eslint-disable-next-line no-console
-  window.__LAST_ERROR__ = { error: ev.error, message: ev.message, stack: ev.error?.stack };
+  // window.__LAST_ERROR__ = { error: ev.error, message: ev.message, stack: ev.error?.stack };
 });
+
 window.addEventListener('unhandledrejection', (ev) => {
-  // eslint-disable-next-line no-console
-  window.__LAST_REJECTION__ = { reason: ev.reason, stack: ev.reason?.stack };
+  // window.__LAST_REJECTION__ = { reason: ev.reason, stack: ev.reason?.stack };
 });
 
 root.render(

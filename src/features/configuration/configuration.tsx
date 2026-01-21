@@ -140,6 +140,7 @@ export const ConfigGridContainer: FC<ConfigGridContainerProps> = (props) => {
           item
           xs={4}
           key={idx}
+          sx={{ mb: 2 }}
         >
           {child}
         </Grid>

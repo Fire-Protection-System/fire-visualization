@@ -14,28 +14,31 @@ import { Grid, Box, Typography } from '@mui/material';
 import { MainCard } from '../MainCard';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Configuration } from '../../model/configuration';
-import { useForestBorderLayer } from '../hooks/useForestBorderLayer';
-import { useSectorsLayer } from '../hooks/useSectorsLayer';
-import { useSelectedSectorLayer, useTargetSectorLayer } from '../hooks/useSelectedSectorLayer';
-import { useOnSectorChange } from '../hooks/useOnSectorChange';
-import { useOnTooltipChange } from '../hooks/useOnTooltipChange';
+import { useForestBorderLayer } from '../../features/maps/useForestBorderLayer';
+import { useSectorsLayer } from '../../features/maps/useSectorsLayer';
+import { useSelectedSectorLayer } from '../../features/maps/useSelectedSectorLayer';
+import { useTargetSectorLayer } from '../../features/maps/useSelectedSectorLayer';
+import { useOnSectorChange } from '../../features/maps/useOnSectorChange';
+import { useOnTooltipChange } from '../../features/maps/useOnTooltipChange';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
 import { setCurrentSectorId } from '../../store/mapConfigurationSlice';
-import { SensorMarkers } from './SensorMarkers';
+// import { SensorMarkers } from './SensorMarkers';
 import { CameraMarkers } from './CameraMarkers';
-import { ForesterPatrolMarkers } from './ForesterPatrolMarkers';
-import { FireBrigadeMarkers } from './FireBrigadeMarkers';
-import { FireBrigadeBaseMarkers } from './FireBrigadeBaseMarkers';
-import { ForesterPatrolBaseMarkers } from './ForesterPatrolBaseMarkers';
+// import { ForesterPatrolMarkers } from './ForesterPatrolMarkers';
+// import { FireBrigadeMarkers } from './FireBrigadeMarkers';
+// import { FireBrigadeBaseMarkers } from './FireBrigadeBaseMarkers';
+// import { ForesterPatrolBaseMarkers } from './ForesterPatrolBaseMarkers';
+import { useForesterPatrolLayer } from '../../features/maps/useForesterPatrolLayer';
+import { useFireBrigadeLayer } from '../../features/maps/useFireBrigadeLayer';
 
 type Props = {
-   //   disableTooltip?: boolean;
    targetSectorId: number|null;
    onClickHandler: (sectorId: number) => void;
 }
-export const ForesterMap = (props: Props) => {
-   const map = useMap('main-map');
+
+const ForesterMapInner = (props: Props) => {
+   const map = useMap('forester-map');
    const { configuration: mapConfiguration, currentSectorId } = useSelector(
       (state: RootState) => state.mapConfiguration,
    );
@@ -80,10 +83,8 @@ export const ForesterMap = (props: Props) => {
    const targetSectorLayer = useTargetSectorLayer(
       mapConfiguration.sectors.find(({ sectorId }) => sectorId === props.targetSectorId && sectorId != currentSectorId) ,
    );
-   //   if (props.disableTooltip == false || props.disableTooltip == undefined) {
-   //     useOnTooltipChange(setTooltip);
-   //   }
-
+   const foresterPatrolLayer = useForesterPatrolLayer();
+   const fireBrigadeLayer = useFireBrigadeLayer();
 
    const onSectorChange = useCallback(
       (sectorId: number | null) => {
@@ -92,6 +93,53 @@ export const ForesterMap = (props: Props) => {
       [dispatch],
    );
    useOnSectorChange(onSectorChange);
+
+   if (Object.values(bounds).every((bound) => bound === 0))
+      return (
+         <Box
+            sx={{
+               display: 'flex',
+               flexDirection: 'column',
+               justifyContent: 'center',
+               alignItems: 'center',
+               backgroundColor: 'secondary.light',
+               height: '800px',
+            }}
+         >
+            <Typography variant="h2">No configuration selected!</Typography>
+            <Typography variant="h4">Please select a configuration to see the map</Typography>
+         </Box>
+      );
+
+   return (
+      <>
+         {tooltip}
+         <DeckGlOverlay 
+           overlayId="forester-map"
+           capturePointerEvents={true}
+           layers={[
+             forestBorderLayer, 
+             ...(Array.isArray(sectorsLayer) ? sectorsLayer : [sectorsLayer]),
+             selectedSectorLayer, 
+             targetSectorLayer,
+             ...(Array.isArray(foresterPatrolLayer) ? foresterPatrolLayer : [foresterPatrolLayer]),
+             ...(Array.isArray(fireBrigadeLayer) ? fireBrigadeLayer : [fireBrigadeLayer]),
+           ].filter(Boolean)} />
+         {/* Old render system wyłączony - używamy Deck.gl do renderowania agentów */}
+         {/* <ForesterPatrolMarkers/> */}
+         {/* <ForesterPatrolBaseMarkers/> */}
+      </>
+   );
+};
+
+export const ForesterMap = (props: Props) => {
+   const { configuration: mapConfiguration } = useSelector(
+      (state: RootState) => state.mapConfiguration,
+   );
+   const [bounds, setBounds] = useState(Configuration.getBounds(mapConfiguration));
+   useEffect(() => {
+      setBounds(Configuration.getBounds(mapConfiguration));
+   }, [mapConfiguration]);
 
    if (Object.values(bounds).every((bound) => bound === 0))
       return (
@@ -133,23 +181,13 @@ export const ForesterMap = (props: Props) => {
          >
             <Box sx={{ height: '800px' /* TODO fix fixed height */ }}>
                <Map
-                  id="main-map"
-                  mapId={process.env.GOOGLE_MAP_ID_MAIN_MAP}
-                  // defaultBounds={bounds}
+                  id="forester-map"
+                  defaultBounds={bounds}
                   onDragstart={() => {
-                     // hide tooltip when dragging the map
-                     if (tooltip !== null) setTooltip(null);
+                     // Handled in ForesterMapInner
                   }}
                >
-                  {tooltip}
-                  <DeckGlOverlay 
-                    overlayId="forester-map"
-                    capturePointerEvents={true} // Enable pointer events for sector hover/click
-                    layers={[forestBorderLayer, sectorsLayer, selectedSectorLayer, targetSectorLayer]} />
-                
-                  <ForesterPatrolMarkers/>
-                  <ForesterPatrolBaseMarkers/>
-                 
+                  <ForesterMapInner {...props} />
                </Map>
             </Box>
          </MainCard>

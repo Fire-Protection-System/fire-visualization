@@ -27,20 +27,10 @@ export class HttpClientError extends Error {
 }
 
 const logError = (error: ApiError): void => {
-  console.error('[API Error]', {
-    message: error.message,
-    status: error.status,
-    statusText: error.statusText,
-    url: error.url,
-    timestamp: new Date().toISOString(),
-  });
-  
-  if (error.data) {
-    console.error('[API Error Data]', error.data);
-  }
+  return; // Disable logging for now
 };
 
-const handleResponse = async <T>(response: Response, url: string): Promise<T> => {
+async function handleResponse<T>(response: Response, url: string): Promise<T> {
   if (!response.ok) {
     let errorData: unknown = null;
     try {
@@ -98,10 +88,11 @@ const handleResponse = async <T>(response: Response, url: string): Promise<T> =>
     logError(error);
     throw new HttpClientError(error);
   }
-};
+
+  }
 
 export const httpClient = {
-  get: async <T>(url: string, options?: RequestInit): Promise<T> => {
+  async get<T>(url: string, options?: RequestInit): Promise<T> {
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -127,7 +118,7 @@ export const httpClient = {
     }
   },
 
-  post: async <T>(url: string, body?: unknown, options?: RequestInit): Promise<T> => {
+  async post<T>(url: string, body?: unknown, options?: RequestInit): Promise<T> {
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -154,7 +145,7 @@ export const httpClient = {
     }
   },
 
-  put: async <T>(url: string, body?: unknown, options?: RequestInit): Promise<T> => {
+  async put<T>(url: string, body?: unknown, options?: RequestInit): Promise<T> {
     try {
       const response = await fetch(url, {
         method: 'PUT',
@@ -181,7 +172,7 @@ export const httpClient = {
     }
   },
 
-  delete: async <T>(url: string, options?: RequestInit): Promise<T> => {
+  async delete<T>(url: string, options?: RequestInit): Promise<T> {
     try {
       const response = await fetch(url, {
         method: 'DELETE',

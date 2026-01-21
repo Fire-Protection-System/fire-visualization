@@ -5,6 +5,7 @@ import { AppDispatch, RootState } from '../../store/reduxStore';
 import { isDefaultConfiguration } from '../../model/configuration';
 import { useNavigate } from 'react-router-dom';
 import { startFetchingConfigurationUpdate } from '../../store/serverCommunicationReducers';
+import { openDrawer } from '../../store/menuSlice';
 
 export const RunSimulationButton = () => {
   const { configuration: mapConfiguration } = useSelector((state: RootState) => state.mapConfiguration);
@@ -13,6 +14,8 @@ export const RunSimulationButton = () => {
 
   const fetchConfigurationUpdate = useCallback(() => {
     dispatch(startFetchingConfigurationUpdate());
+    // Close drawer when simulation starts
+    dispatch(openDrawer({ drawerOpen: false }));
   }, [dispatch]);
 
   const startSimulation = useCallback(() => {       

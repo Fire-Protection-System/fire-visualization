@@ -12,15 +12,21 @@ export type MapProps = {
 };
 
 type MapContextValue = {
-  map: maplibre.Map | null;
+  map: maplibregl.Map | null;
+  id?: string;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
 
-export const Map = (props: PropsWithChildren<MapProps>) => {
+export const Map = (props: PropsWithChildren<MapProps> = {}) => {
+  // Safety check: ensure props is defined (provide defaults)
+  if (!props || typeof props !== 'object') {
+    console.error('[MapLibre] Map component received invalid props:', props);
+    return null;
+  }
   const { children, id, defaultBounds, initialCenter, initialZoom, onDragstart, style } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [map, setMap] = useState<maplibre.Map | null>(null);
+  const [map, setMap] = useState<maplibregl.Map | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -36,7 +42,7 @@ export const Map = (props: PropsWithChildren<MapProps>) => {
               'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
             ],
             tileSize: 256,
-            attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
           }
         },
         layers: [
@@ -45,7 +51,11 @@ export const Map = (props: PropsWithChildren<MapProps>) => {
             type: 'raster',
             source: 'esri-satellite',
             minzoom: 0,
-            maxzoom: 22
+            maxzoom: 22,
+            paint: {
+              'raster-opacity': 1,
+              'raster-fade-duration': 0
+            }
           }
         ]
       },
@@ -53,73 +63,16 @@ export const Map = (props: PropsWithChildren<MapProps>) => {
       zoom: initialZoom ?? 1,
       maxZoom: 22,
       preserveDrawingBuffer: true, // Prevent WebGL context loss
-      failIfMajorPerformanceCaveat: false
-    });
-
-    // Add administrative boundaries layer after map loads
-    mapInstance.on('load', () => {
-      try {
-        // Add administrative boundaries using a vector tile service
-        // Using OpenMapTiles free tier (you may want to get your own key for production)
-        const boundariesSource = {
-          type: 'vector' as const,
-          tiles: [
-            'https://api.maptiler.com/tiles/v3/{z}/{x}/{y}.pbf?key=get_your_own_OpIi9ZULNHzrESv6T2vL'
-          ],
-          minzoom: 0,
-          maxzoom: 14
-        };
-
-        mapInstance.addSource('boundaries', boundariesSource);
-
-        // Add country boundaries (admin_level 2)
-        mapInstance.addLayer({
-          id: 'admin-boundary-country',
-          type: 'line',
-          source: 'boundaries',
-          'source-layer': 'boundary',
-          filter: ['==', 'admin_level', 2],
-          paint: {
-            'line-color': '#ffffff',
-            'line-width': 2.5,
-            'line-opacity': 0.9
-          },
-          minzoom: 2
-        });
-
-        // Add state/province boundaries (admin_level 4)
-        mapInstance.addLayer({
-          id: 'admin-boundary-state',
-          type: 'line',
-          source: 'boundaries',
-          'source-layer': 'boundary',
-          filter: ['==', 'admin_level', 4],
-          paint: {
-            'line-color': '#ffffff',
-            'line-width': 1.5,
-            'line-opacity': 0.8,
-            'line-dasharray': [3, 2]
-          },
-          minzoom: 4
-        });
-
-        // Add county boundaries (admin_level 6)
-        mapInstance.addLayer({
-          id: 'admin-boundary-county',
-          type: 'line',
-          source: 'boundaries',
-          'source-layer': 'boundary',
-          filter: ['==', 'admin_level', 6],
-          paint: {
-            'line-color': '#cccccc',
-            'line-width': 1,
-            'line-opacity': 0.6,
-            'line-dasharray': [2, 2]
-          },
-          minzoom: 8
-        });
-      } catch (error) {
-      }
+      failIfMajorPerformanceCaveat: false,
+      // OPTIMIZATION: Reduce memory usage and improve performance
+      refreshExpiredTiles: false,
+      maxTileCacheSize: 200, // Increased to prevent tile thrashing while maintaining perf
+      trackResize: true,
+      // CRITICAL: Disable map animations and transitions for blazing fast rendering
+      antialias: false, // Disable antialiasing - faster rendering
+      // Reduce style evaluation frequency
+      fadeDuration: 0, // No fade animation on tiles
+      crossSourceCollisions: false, // Disable collision detection between sources
     });
 
     mapInstance.on('movestart', () => {
@@ -129,36 +82,63 @@ export const Map = (props: PropsWithChildren<MapProps>) => {
     // Add error handling for WebGL context loss
     mapInstance.on('webglcontextlost', (e) => {
       e.preventDefault();
+      console.warn('[MapLibre] WebGL context lost - attempting to restore...');
     });
 
     mapInstance.on('webglcontextrestored', () => {
+      // logging removed for performance
     });
 
     setMap(mapInstance);
 
     // Ensure the map is resized when the container changes size (prevents trimmed/zoomed view)
-    // Use ResizeObserver for reliable detection and also handle window resize as a fallback
-    const ro = new ResizeObserver(() => {
-      try {
-        mapInstance.resize();
-        // trigger a repaint for safety
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        if (mapInstance.triggerRepaint) mapInstance.triggerRepaint();
-      } catch (err) {
+    // Use ResizeObserver with rAF throttling to avoid flicker/blank flash on rapid resizes
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let resizeRaf: number | null = null;
+    let resizeTimer: number | null = null;
+
+    const scheduleResize = () => {
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer);
       }
+      resizeTimer = window.setTimeout(() => {
+        if (resizeRaf !== null) {
+          cancelAnimationFrame(resizeRaf);
+        }
+        resizeRaf = requestAnimationFrame(() => {
+          resizeRaf = null;
+          const el = containerRef.current;
+          if (!el) return;
+          const { clientWidth, clientHeight } = el;
+          if (clientWidth === lastWidth && clientHeight === lastHeight) return;
+          lastWidth = clientWidth;
+          lastHeight = clientHeight;
+          try {
+            mapInstance.resize();
+          } catch (err) {
+            // pass
+          }
+        });
+      }, 120);
+    };
+
+    const ro = new ResizeObserver(() => {
+      scheduleResize();
     });
     if (containerRef.current) ro.observe(containerRef.current);
 
     // Some browsers may layout late, ensure initial correct sizing
-    setTimeout(() => mapInstance.resize(), 0);
+    setTimeout(() => scheduleResize(), 0);
 
-    const onWindowResize = () => mapInstance.resize();
+    const onWindowResize = () => scheduleResize();
     window.addEventListener('resize', onWindowResize);
 
     return () => {
       window.removeEventListener('resize', onWindowResize);
       ro.disconnect();
+      if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);
+      if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       mapInstance.remove();
       setMap(null);
     };
@@ -167,32 +147,50 @@ export const Map = (props: PropsWithChildren<MapProps>) => {
   useEffect(() => {
     if (!map || !defaultBounds) return;
     // fitBounds expects [sw, ne] - use jumpTo for instant positioning without animation
+    // Increased bottom padding to ensure lower sectors are fully visible
     const sw = [defaultBounds.west, defaultBounds.south] as [number, number];
     const ne = [defaultBounds.east, defaultBounds.north] as [number, number];
-    map.fitBounds([sw, ne], { duration: 0, padding: 50 });
+    map.fitBounds([sw, ne], {
+      duration: 0,
+      padding: {
+        top: 50,
+        bottom: 100, // Increased bottom padding to show lower sectors
+        left: 50,
+        right: 50
+      }
+    });
   }, [map, defaultBounds]);
 
-  const value = useMemo(() => ({ map }), [map]);
+  const value = useMemo(() => ({ map, id }), [map, id]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', ...style }}>
-      <div 
-        ref={containerRef} 
-        data-testid={id ?? 'map'} 
-        style={{ 
-          width: '100%', 
+      <div
+        ref={containerRef}
+        data-testid={id ?? 'map'}
+        style={{
+          width: '100%',
           height: '100%',
-          border: '2px solid #333',
-          borderRadius: '4px',
+          border: 'none',
+          borderRadius: 0,
           boxSizing: 'border-box'
-        }} 
+        }}
       />
       <MapContext.Provider value={value}>{map ? children : null}</MapContext.Provider>
+      {/* Marker styles for AgentMarkerManager */}
+      <style>{`.agent-marker{transition: transform 0.08s linear; will-change: transform; pointer-events: none;}`}</style>
     </div>
   );
 };
 
-export const useMap = (id: string | null = null): maplibre.Map | null => {
+export const useMap = (id: string | null = null): maplibregl.Map | null => {
   const ctx = useContext(MapContext);
+  
+  // If id is specified, verify it matches the context map's id
+  if (id && ctx?.id !== id) {
+    console.warn(`[MapLibre] useMap requested map with id "${id}" but context has id "${ctx?.id}"`);
+    return null;
+  }
+  
   return ctx?.map ?? null;
 };

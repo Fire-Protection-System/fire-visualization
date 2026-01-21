@@ -133,10 +133,10 @@ export const SectorFormPart: FC<ItemFormPartProps<Sector>> = ({ readonly, obj: s
               await simulationService.assignBrigades(payload);
             } catch (error) {
               console.error('[SectorConfiguration] Failed to assign brigades:', error);
-              return;
-            }
+                return;
+              }
 
-            // Optimistically update UI so assignment is visible immediately.
+              // Optimistically update UI so assignment is visible immediately.
               const sectorState = {
                 temperature: sector.initialState.temperature,
                 windSpeed: sector.initialState.windSpeed,

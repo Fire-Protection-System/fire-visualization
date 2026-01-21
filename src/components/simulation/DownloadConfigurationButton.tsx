@@ -32,7 +32,7 @@ const DownloadConfigurationButton: React.FC = () => {
       variant="contained"
       color='secondary'
       onClick={downloadFile}
-      sx={{ width: '150px' }}      
+      sx={{ width: '250px' }}      
     >
       Download Configuration
     </Button>

@@ -17,8 +17,9 @@
   "main": "src/app/index.tsx",
   "scripts": {
     "postinstall": "echo 'patch-package disabled during PoC'",
-    "start": "webpack serve --open --mode development",
-    "build": "webpack --mode production"
+    "start": "npx webpack serve --open --mode development",
+    "build": "webpack --mode production",
+    "build:fast": "cross-env NODE_ENV=production webpack --mode production --progress --colors"
   },
   "dependencies": {
     "@ant-design/colors": "^7.0.2",
@@ -36,10 +37,9 @@
     "@mui/lab": "^5.0.0-alpha.170",
     "@mui/material": "^5.15.15",
     "@reduxjs/toolkit": "^2.2.3",
-    "apexcharts": "^3.48.0",
+    "apexcharts": "^4.3.0",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.4.5",
-    "electron-reload": "^2.0.0-alpha.1",
     "eventemitter3": "^5.0.1",
     "formik": "^2.4.5",
     "framer-motion": "^11.0.25",
@@ -65,6 +65,9 @@
     "@babel/preset-env": "^7.24.3",
     "@babel/preset-react": "^7.24.1",
     "@babel/preset-typescript": "^7.24.1",
+    "esbuild": "^0.19.0",
+    "esbuild-loader": "^3.1.0",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^20.12.12",
     "@types/react": "^18.2.72",
     "@types/react-copy-to-clipboard": "^5.0.7",
@@ -79,17 +82,17 @@
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.1",
     "dotenv-webpack": "^8.1.0",
-    "electron": "^29.4.6",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "html-webpack-plugin": "^5.6.0",
     "prettier": "^3.2.5",
     "style-loader": "^4.0.0",
+    "thread-loader": "^3.0.4",
     "typescript": "^5.4.3",
     "wait-on": "^7.2.0",
     "webpack": "^5.104.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.2.2"
+    "webpack-dev-server": "^5.2.3"
   }
 }

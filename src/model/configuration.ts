@@ -139,9 +139,9 @@ export const Configuration = {
   },
   sectors: {
     toString: (sector: ProcessedSector) => {
-      const fireStr = sector.fireLevel !== null && sector.fireLevel !== undefined ? `\n        🔥 Fire Level: ${sector.fireLevel.toFixed(2)}` : '';
-      const burnStr = sector.burnLevel !== null && sector.burnLevel !== undefined ? `\n        💨 Burn Level: ${sector.burnLevel.toFixed(2)}` : '';
-      const extStr = sector.extinguishLevel !== null && sector.extinguishLevel !== undefined ? `\n        🧯 Extinguish Level: ${sector.extinguishLevel.toFixed(2)}` : '';
+      const fireStr = sector.fireLevel !== null && sector.fireLevel !== undefined ? `\n        Fire Level: ${sector.fireLevel.toFixed(2)}` : '';
+      const burnStr = sector.burnLevel !== null && sector.burnLevel !== undefined ? `\n        Burn Level: ${sector.burnLevel.toFixed(2)}` : '';
+      const extStr = sector.extinguishLevel !== null && sector.extinguishLevel !== undefined ? `\n        Extinguish Level: ${sector.extinguishLevel.toFixed(2)}` : '';
 
       return `Sector ID: ${sector.sectorId} [R${sector.row}, C${sector.column}]
         Forest type: ${sector.sectorType}
@@ -151,42 +151,76 @@ export const Configuration = {
     },
   },
   updateConfiguration: (configuration: Configuration, configurationUpdate: ConfigurationUpdate): Configuration => {
-    // Guard against empty updates - keep existing data if update has none
-    const updatedFireBrigades = configurationUpdate.fireBrigades && configurationUpdate.fireBrigades.length > 0
-      ? configurationUpdate.fireBrigades.map(fb => ({
-          fireBrigadeId: fb.fireBrigadeId,
-          timestamp: Date.now(),
-          state: fb.state,
-          baseLocation: configuration.fireBrigades.find(b => b.fireBrigadeId === fb.fireBrigadeId)?.baseLocation || fb.location,
-          currentLocation: fb.location,
-          sectorId: fb.sectorId,
-        }))
-      : configuration.fireBrigades;
+    // Optimize: Use Map for O(1) lookup instead of O(n) .find() operations
+    // This changes complexity from O(n²) to O(n)
+    const sectorUpdateMap = new Map(configurationUpdate.sectors.map(update => [update.sectorId, update]));
+    const fireBrigadeMap = new Map(configuration.fireBrigades.map(fb => [fb.fireBrigadeId, fb]));
+    const foresterPatrolMap = new Map(configuration.foresterPatrols.map(fp => [fp.foresterPatrolId, fp]));
+
+    // Update sectors: only process sectors that have updates
+    const updatedSectors = configuration.sectors.map((sector) => {
+      const sectorUpdate = sectorUpdateMap.get(sector.sectorId);
+      if (!sectorUpdate) {
+        // Normal: backend may send partial updates (only changed sectors)
+        // Keep existing sector state if no update provided
+        return sector;
+      }
+      return Sector.updateSector(sector, sectorUpdate);
+    });
+
+    // Update fire brigades: only update changed ones, reuse unchanged
+    let updatedFireBrigades: FireBrigade[];
+    if (configurationUpdate.fireBrigades && configurationUpdate.fireBrigades.length > 0) {
+      const fbUpdateMap = new Map(configurationUpdate.fireBrigades.map(fb => [fb.fireBrigadeId, fb]));
+      updatedFireBrigades = configuration.fireBrigades.map(fb => {
+        const update = fbUpdateMap.get(fb.fireBrigadeId);
+        if (update) {
+          // Update changed fire brigade (preserve baseLocation from existing)
+          return {
+            ...fb,
+            timestamp: Date.now(),
+            state: update.state,
+            currentLocation: update.location,
+            sectorId: update.sectorId,
+            // baseLocation is preserved from ...fb spread
+          };
+        }
+        // Keep unchanged fire brigade
+        return fb;
+      });
+    } else {
+      // No updates, reuse array reference (will be shallow copied by spread operator)
+      updatedFireBrigades = configuration.fireBrigades;
+    }
       
-    const updatedForesterPatrols = configurationUpdate.foresterPatrols && configurationUpdate.foresterPatrols.length > 0
-      ? configurationUpdate.foresterPatrols.map(fp => ({
-          foresterPatrolId: fp.foresterPatrolId,
-          timestamp: Date.now(),
-          state: fp.state,
-          baseLocation: configuration.foresterPatrols.find(p => p.foresterPatrolId === fp.foresterPatrolId)?.baseLocation || fp.location,
-          currentLocation: fp.location,
-          sectorId: fp.sectorId,
-        }))
-      : configuration.foresterPatrols;
+    // Update forester patrols: only update changed ones, reuse unchanged
+    let updatedForesterPatrols: ForesterPatrol[];
+    if (configurationUpdate.foresterPatrols && configurationUpdate.foresterPatrols.length > 0) {
+      const fpUpdateMap = new Map(configurationUpdate.foresterPatrols.map(fp => [fp.foresterPatrolId, fp]));
+      updatedForesterPatrols = configuration.foresterPatrols.map(fp => {
+        const update = fpUpdateMap.get(fp.foresterPatrolId);
+        if (update) {
+          // Update changed forester patrol (preserve baseLocation from existing)
+          return {
+            ...fp,
+            timestamp: Date.now(),
+            state: update.state,
+            currentLocation: update.location,
+            sectorId: update.sectorId,
+            // baseLocation is preserved from ...fp spread
+          };
+        }
+        // Keep unchanged forester patrol
+        return fp;
+      });
+    } else {
+      // No updates, reuse array reference (will be shallow copied by spread operator)
+      updatedForesterPatrols = configuration.foresterPatrols;
+    }
 
     return {
       ...configuration,
-      sectors: configuration.sectors.map((sector) => {
-        const sectorUpdate = configurationUpdate.sectors.find(({ sectorId }) => sectorId === sector.sectorId);
-        if (!sectorUpdate) {
-          console.warn(
-            `Configuration.updateConfiguration couldn't find updated sector with provided ID: ${sector.sectorId}`
-          );
-          return sector;
-        }
-
-        return Sector.updateSector(sector, sectorUpdate);
-      }),
+      sectors: updatedSectors,
       fireBrigades: updatedFireBrigades,
       foresterPatrols: updatedForesterPatrols,
       // TODO update timestamp

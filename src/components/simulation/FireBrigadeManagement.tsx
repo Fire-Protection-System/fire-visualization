@@ -4,7 +4,7 @@ import { FireBrigade } from "../../model/FireBrigade";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/reduxStore";
 import { useMemo } from "react";
-import { getObjectsInSector } from '@shared/utils/configuration/getObjectsInSector';
+import { getObjectsInSector } from '@shared/utils/getObjectsInSector';
 
 export default function FireBrigadeManagement() {
    const {

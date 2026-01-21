@@ -6,6 +6,12 @@ import { Sensor } from '../model/sensor';
 import { Camera } from '../model/camera';
 import { FireBrigade } from '../model/FireBrigade';
 import { ForesterPatrol } from '../model/ForesterPatrol';
+// import { performanceMonitor } from '../shared/utils/performanceMonitor';
+
+// Performance monitoring
+let _updateSectorStatesCount = 0;
+let _updateSectorAndAgentStatesCount = 0;
+let _lastUpdateTime = Date.now();
 
 type mapConfigurationState = {
   fileSystemNode: FileSystemNode;
@@ -35,6 +41,109 @@ export const mapConfigurationSlice = createSlice({
     updateConfiguration: (state, action: { payload: { configurationUpdate: ConfigurationUpdate }; type: string }) => {
       const { configurationUpdate } = action.payload;
       state.configuration = Configuration.updateConfiguration(state.configuration, configurationUpdate);
+    },
+    updateSectorStatesFast: (state, action) => {
+      const startTime = performance.now();
+      const { sectorUpdates } = action.payload;
+      if (!sectorUpdates || sectorUpdates.length === 0) {
+        return;
+      }
+
+      const sectorById = new Map(state.configuration.sectors.map((sector) => [sector.sectorId, sector]));
+      for (const update of sectorUpdates) {
+        const sector = sectorById.get(update.sectorId);
+        if (!sector) {
+          continue;
+        }
+
+        sector.fireLevel = update.fireLevel;
+        sector.burnLevel = update.burnLevel;
+        sector.extinguishLevel = update.extinguishLevel;
+        sector.initialState.fireLevel = update.fireLevel;
+        sector.initialState.burnLevel = update.burnLevel;
+        sector.initialState.extinguishLevel = update.extinguishLevel;
+      }
+      
+      const updateTime = performance.now() - startTime;
+      _updateSectorStatesCount++;
+      const now = Date.now();
+      const timeSinceLastUpdate = now - _lastUpdateTime;
+      
+      // Only log every 5th update to reduce console spam
+      if (_updateSectorStatesCount % 5 === 0) {
+        // logging removed for performance
+      }
+      _lastUpdateTime = now;
+    },
+    updateSectorAndAgentStatesFast: (state, action) => {
+      const startTime = performance.now();
+      const { sectorUpdates, agentUpdates } = action.payload;
+      
+      let sectorsUpdated = 0;
+      let fireBrigadesUpdated = 0;
+      let foresterPatrolsUpdated = 0;
+      
+      // Fast sector updates (already optimized)
+      if (sectorUpdates && sectorUpdates.length > 0) {
+        const sectorById = new Map(state.configuration.sectors.map((sector) => [sector.sectorId, sector]));
+        for (const update of sectorUpdates) {
+          const sector = sectorById.get(update.sectorId);
+          if (!sector) {
+            continue;
+          }
+          sector.fireLevel = update.fireLevel;
+          sector.burnLevel = update.burnLevel;
+          sector.extinguishLevel = update.extinguishLevel;
+          sector.initialState.fireLevel = update.fireLevel;
+          sector.initialState.burnLevel = update.burnLevel;
+          sector.initialState.extinguishLevel = update.extinguishLevel;
+          sectorsUpdated++;
+        }
+      }
+      
+      // Fast agent position/state updates
+      if (agentUpdates) {
+        // Update fire brigades
+        if (agentUpdates.fireBrigades && agentUpdates.fireBrigades.length > 0) {
+          const fbMap = new Map(state.configuration.fireBrigades.map(fb => [fb.fireBrigadeId, fb]));
+          for (const update of agentUpdates.fireBrigades) {
+            const fb = fbMap.get(update.fireBrigadeId);
+            if (fb && update.location) {
+              fb.currentLocation = update.location;
+              fb.sectorId = update.sectorId ?? fb.sectorId;
+              fb.state = update.state ?? fb.state;
+              fb.timestamp = Date.now();
+              fireBrigadesUpdated++;
+            }
+          }
+        }
+        
+        // Update forester patrols
+        if (agentUpdates.foresterPatrols && agentUpdates.foresterPatrols.length > 0) {
+          const fpMap = new Map(state.configuration.foresterPatrols.map(fp => [fp.foresterPatrolId, fp]));
+          for (const update of agentUpdates.foresterPatrols) {
+            const fp = fpMap.get(update.foresterPatrolId);
+            if (fp && update.location) {
+              fp.currentLocation = update.location;
+              fp.sectorId = update.sectorId ?? fp.sectorId;
+              fp.state = update.state ?? fp.state;
+              fp.timestamp = Date.now();
+              foresterPatrolsUpdated++;
+            }
+          }
+        }
+      }
+      
+      const updateTime = performance.now() - startTime;
+      _updateSectorAndAgentStatesCount++;
+      const now = Date.now();
+      const timeSinceLastUpdate = now - _lastUpdateTime;
+      
+      // Only log every 5th update to reduce console spam
+      if (_updateSectorAndAgentStatesCount % 5 === 0) {
+        // logging removed for performance
+      }
+      _lastUpdateTime = now;
     },
     setCurrentSectorId: (state, action) => {
       const { currentSectorId: prevSectorId } = state;
@@ -67,6 +176,8 @@ export const mapConfigurationSlice = createSlice({
 export const {
   setConfiguration,
   updateConfiguration,
+  updateSectorStatesFast,
+  updateSectorAndAgentStatesFast,
   setCurrentSectorId,
   setFileSystemNode,
   addSensor,

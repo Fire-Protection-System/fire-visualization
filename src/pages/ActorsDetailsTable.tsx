@@ -8,19 +8,27 @@ import {
     TableRow,
     TableCell,
     TableBody,
+    TableContainer,
     Button,
     Chip
 } from '@mui/material';
 import { RootState } from '../store/reduxStore';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { sendBrigadeOrForesterMoveOrder } from '../store/serverCommunicationReducers';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../store/reduxStore';
+import { MoveAgentModal } from '../components/simulation/MoveAgentModal';
 
 export default function ActorsDetailsTable() {
     const dispatch: AppDispatch = useDispatch();
     const mapConfigState = useSelector((state: RootState) => state.mapConfiguration);
     const recommendations = useSelector((state: RootState) => state.recommendation.recommendations);
+    const [moveModalOpen, setMoveModalOpen] = useState(false);
+    const [selectedAgent, setSelectedAgent] = useState<{
+        id: number;
+        type: 'Fire Brigade' | 'Forester Patrol';
+        currentSectorId: number;
+    } | null>(null);
 
     const {
         configuration: mapConfiguration,
@@ -28,6 +36,7 @@ export default function ActorsDetailsTable() {
 
     const fireBrigades = mapConfiguration?.fireBrigades || [];
     const foresterPatrols = mapConfiguration?.foresterPatrols || [];
+    const sectorIds = useMemo(() => new Set((mapConfiguration?.sectors || []).map((s: any) => s.sectorId)), [mapConfiguration?.sectors]);
 
     // Combine all agents with their type
     const agents = useMemo(() => {
@@ -51,9 +60,13 @@ export default function ActorsDetailsTable() {
     }, [fireBrigades, foresterPatrols]);
 
     const handleRunRecommendation = useCallback((unitId: number, sectorId: number, agentType: 'Fire Brigade' | 'Forester Patrol') => {
+        if (!sectorIds.has(sectorId)) {
+            console.warn(`[ActorsDetailsTable] Sector ${sectorId} not found in configuration. Available: [${Array.from(sectorIds).join(', ')}]. Skipping.`);
+            return;
+        }
         const type = agentType === 'Fire Brigade' ? 'brigade' : 'forester';
-        dispatch(sendBrigadeOrForesterMoveOrder(unitId, sectorId, type));
-    }, [dispatch]);
+        dispatch(sendBrigadeOrForesterMoveOrder(unitId, sectorId, type, 'manual'));
+    }, [dispatch, sectorIds]);
 
     const getRecommendationForAgent = useCallback((agentId: number, agentType: 'Fire Brigade' | 'Forester Patrol') => {
         const typedKey = agentType === 'Fire Brigade'
@@ -67,21 +80,47 @@ export default function ActorsDetailsTable() {
         return recommendation;
     }, [recommendations]);
 
+    const handleOpenMoveModal = useCallback((agentId: number, agentType: 'Fire Brigade' | 'Forester Patrol', currentSectorId: number) => {
+        setSelectedAgent({ id: agentId, type: agentType, currentSectorId });
+        setMoveModalOpen(true);
+    }, []);
+
+    const handleCloseMoveModal = useCallback(() => {
+        setMoveModalOpen(false);
+        setSelectedAgent(null);
+    }, []);
+
+    const handleMoveAgent = useCallback((targetSectorId: number) => {
+        if (selectedAgent) {
+            handleRunRecommendation(selectedAgent.id, targetSectorId, selectedAgent.type);
+        }
+    }, [selectedAgent, handleRunRecommendation]);
+
     return (
-        <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
+        <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <Typography variant="h6" sx={{ mb: 1, flexShrink: 0 }}>
                 Agent Status
             </Typography>
-            <Paper sx={{ overflow: 'auto', maxHeight: 400 }}>
-                <Table size="small" sx={{ '& td, & th': { px: 1, py: 0.5, fontSize: '0.75rem' } }}>
+            <TableContainer 
+                component={Paper}
+                sx={{ 
+                    flex: 1,
+                    minHeight: 0,
+                    width: '100%',
+                    overflowX: 'hidden',
+                    overflowY: 'auto'
+                }}
+            >
+                <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', '& td, & th': { px: 0.3, py: 0.75, fontSize: '0.7rem', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}>
                     <TableHead>
                         <TableRow>
-                            <TableCell><strong>Agent</strong></TableCell>
-                            <TableCell><strong>Type</strong></TableCell>
-                            <TableCell><strong>State</strong></TableCell>
-                            <TableCell><strong>Sector</strong></TableCell>
-                            <TableCell><strong>Rec</strong></TableCell>
-                            <TableCell><strong>Apply</strong></TableCell>
+                            <TableCell style={{ width: '10%' }}><strong>#</strong></TableCell>
+                            <TableCell style={{ width: '12%' }}><strong>T</strong></TableCell>
+                            <TableCell style={{ width: '22%' }}><strong>St</strong></TableCell>
+                            <TableCell style={{ width: '12%' }}><strong>Sec</strong></TableCell>
+                            <TableCell style={{ width: '18%' }}><strong>Rec</strong></TableCell>
+                            <TableCell style={{ width: '13%' }}><strong>A</strong></TableCell>
+                            <TableCell style={{ width: '13%' }}><strong>M</strong></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -92,11 +131,12 @@ export default function ActorsDetailsTable() {
                             const recommendationText = recommendation 
                                 ? `${recommendationPrefix}${recommendation.sectorId}` 
                                 : '';
+                            const isSectorValid = recommendation?.sectorId ? sectorIds.has(Number(recommendation.sectorId)) : false;
                             
                             return (
                                 <TableRow key={`${agent.type}-${agent.id}`}>
-                                    <TableCell>{agent.id}</TableCell>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: 'center' }}>{agent.id}</TableCell>
+                                    <TableCell sx={{ textAlign: 'center' }}>
                                         <Chip 
                                             label={agent.type === 'Fire Brigade' ? 'FB' : 'FP'} 
                                             size="small"
@@ -104,13 +144,13 @@ export default function ActorsDetailsTable() {
                                             sx={{ fontSize: '0.7rem', height: '20px' }}
                                         />
                                     </TableCell>
-                                    <TableCell>{agent.state}</TableCell>
-                                    <TableCell>{agent.sectorId > 0 ? agent.sectorId : '-'}</TableCell>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: 'center' }}>{agent.state}</TableCell>
+                                    <TableCell sx={{ textAlign: 'center' }}>{agent.sectorId > 0 ? agent.sectorId : '-'}</TableCell>
+                                    <TableCell sx={{ textAlign: 'center' }}>
                                         {recommendationText || '-'}
                                     </TableCell>
-                                    <TableCell>
-                                        {recommendation && recommendation.sectorId ? (
+                                    <TableCell sx={{ textAlign: 'center' }}>
+                                        {recommendation && recommendation.sectorId && isSectorValid ? (
                                             <Button
                                                 variant="contained"
                                                 size="small"
@@ -125,15 +165,37 @@ export default function ActorsDetailsTable() {
                                                 Apply
                                             </Button>
                                         ) : (
-                                            <span style={{ color: '#999' }}>-</span>
+                                            <span style={{ color: isSectorValid ? '#999' : '#c00' }}>
+                                                {recommendation && recommendation.sectorId && !isSectorValid ? 'Invalid sector' : '-'}
+                                            </span>
                                         )}
+                                    </TableCell>
+                                    <TableCell sx={{ textAlign: 'center' }}>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => handleOpenMoveModal(agent.id, agent.type, agent.sectorId)}
+                                            sx={{ fontSize: '0.7rem', py: 0.25, px: 1, minWidth: '60px' }}
+                                        >
+                                            Move
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             );
                         })}
                     </TableBody>
                 </Table>
-            </Paper>
+            </TableContainer>
+            {selectedAgent && (
+                <MoveAgentModal
+                    isOpen={moveModalOpen}
+                    onClose={handleCloseMoveModal}
+                    onMove={handleMoveAgent}
+                    agentId={selectedAgent.id}
+                    agentType={selectedAgent.type}
+                    currentSectorId={selectedAgent.currentSectorId}
+                />
+            )}
         </Box>
     );
 }
