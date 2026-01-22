@@ -1,19 +1,10 @@
+import SafeMap from './SafeMap';
+import DeckGL from '@deck.gl/react';
+
 import { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/reduxStore';
-
-import SafeMap from './SafeMap';
-import DeckGL from '@deck.gl/react';
 import { MapViewState } from '@deck.gl/core';
-
-import {
-  DrawPointMode,
-  EditableGeoJsonLayer,
-  FeatureCollection,
-  Position,
-  ViewMode,
-} from '@deck.gl-community/editable-layers';
-
 import { useMap } from './MapLibre';
 import { useSelectedSectorLayer } from '../../features/maps/useSelectedSectorLayer';
 import { ProcessedSector } from '../../model/processedSector';
@@ -23,6 +14,14 @@ import { MapLocation } from '../../model/geography';
 import { getDefaultMapLocation } from '../../model/common';
 import { Sector } from '../../model/sector';
 import { isPointInBounds } from '@shared/utils/isPointInBounds';
+
+import {
+  DrawPointMode,
+  EditableGeoJsonLayer,
+  FeatureCollection,
+  Position,
+  ViewMode,
+} from '@deck.gl-community/editable-layers';
 
 const parsePositionToMapLocation = (position: Position): MapLocation => ({
   longitude: position[0],

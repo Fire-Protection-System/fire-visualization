@@ -13,7 +13,7 @@ export const useSelectedSectorLayer = (sector?: Sector) => {
     getLineWidth: 20,
     pickable: false,
   });
-  console.debug('[useSelectedSectorLayer] creating SelectedSector layer', { hasSector: !!sector, sectorId: sector?.sectorId ?? null });
+  // console.debug('[useSelectedSectorLayer] creating SelectedSector layer', { hasSector: !!sector, sectorId: sector?.sectorId ?? null });
   return layer;
 };
 
@@ -29,6 +29,6 @@ export const useTargetSectorLayer = (sector?: Sector) => {
     getLineWidth: 20,
     pickable: false,
   });
-  console.debug('[useTargetSectorLayer] creating TargetSector layer', { hasSector: !!sector, sectorId: sector?.sectorId ?? null });
+  // console.debug('[useTargetSectorLayer] creating TargetSector layer', { hasSector: !!sector, sectorId: sector?.sectorId ?? null });
   return layer;
 };

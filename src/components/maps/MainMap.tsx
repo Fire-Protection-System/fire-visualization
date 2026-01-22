@@ -186,57 +186,87 @@ export const MainMap = () => {
     foresterPatrols: Record<number, [number, number]>;
   }>({ fireBrigades: {}, foresterPatrols: {} });
 
+  // Metrics: track position update frequency on frontend
+  const positionUpdateMetricsRef = useRef({
+    count: 0,
+    windowStart: Date.now(),
+    lastLogTime: Date.now(),
+  });
+
+  // FIX: Subscribe to agentPositionController for real-time position updates
+  // instead of relying on mapConfiguration dependency (which changes rarely)
   useEffect(() => {
-
-    const startTime = performance.now();
-    let changed = false;
-    const maxPoints = 500;
-    const MIN_POSITION_CHANGE = 0.0001; 
-
-    // Process fire brigades
-    (mapConfiguration.fireBrigades || []).forEach((fb: FireBrigade) => {
-      const id = fb.fireBrigadeId;
-      const list = historyRef.current.fireBrigades[id] || [];
-      
-      const pos = agentPositionController.getPosition(id, 'fireBrigade');
-      if (!pos) return;
-
-      const point: [number, number] = [pos.lng, pos.lat];
-      const lastPosition = lastPositionsRef.current.fireBrigades[id];
-
-      if (!lastPosition || Math.hypot(lastPosition[0] - point[0], lastPosition[1] - point[1]) > MIN_POSITION_CHANGE) {
-        list.push(point);
-        if (list.length > maxPoints) list.shift();
-        historyRef.current.fireBrigades[id] = list;
-        lastPositionsRef.current.fireBrigades[id] = point;
-        changed = true;
-      }
-    });
-
-    // Process forester patrols
-    (mapConfiguration.foresterPatrols || []).forEach((fp: ForesterPatrol) => {
-      const id = fp.foresterPatrolId;
-      const list = historyRef.current.foresterPatrols[id] || [];
-      
-      const pos = agentPositionController.getPosition(id, 'foresterPatrol');
-      if (!pos) return;
-
-      const point: [number, number] = [pos.lng, pos.lat];
-      const lastPosition = lastPositionsRef.current.foresterPatrols[id];
-
-      if (!lastPosition || Math.hypot(lastPosition[0] - point[0], lastPosition[1] - point[1]) > MIN_POSITION_CHANGE) {
-        list.push(point);
-        if (list.length > maxPoints) list.shift();
-        historyRef.current.foresterPatrols[id] = list;
-        lastPositionsRef.current.foresterPatrols[id] = point;
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      setHistoryVersion((v) => v + 1);
+    if (!showAgentHistory) {
+      return;
     }
-  }, [mapConfiguration.fireBrigades, mapConfiguration.foresterPatrols, showAgentHistory, historyVersion]);
+
+    const maxPoints = 500;
+    const MIN_POSITION_CHANGE = 0.0001;
+
+    const unsubscribe = agentPositionController.subscribe((positions) => {
+      let changed = false;
+      const now = Date.now();
+
+      // Metrics: count position updates
+      positionUpdateMetricsRef.current.count++;
+      const window = now - positionUpdateMetricsRef.current.windowStart;
+      if (window >= 60000) { // Log every minute
+        const updatesPerSec = positionUpdateMetricsRef.current.count / (window / 1000);
+        const updatesPerMin = positionUpdateMetricsRef.current.count;
+        console.log(
+          `[FRONTEND-METRICS] Agent position updates: ${positionUpdateMetricsRef.current.count} in ${(window / 1000).toFixed(1)}s (${updatesPerSec.toFixed(1)} / sec, ${updatesPerMin} / min)`
+        );
+        positionUpdateMetricsRef.current.count = 0;
+        positionUpdateMetricsRef.current.windowStart = now;
+      }
+
+      // Process all agents from positions snapshot
+      for (const [key, pos] of positions.entries()) {
+        if (!pos || !pos.lng || !pos.lat) continue;
+
+        const parts = key.split(':');
+        if (parts.length < 2) continue;
+
+        const unitType = parts[0];
+        const id = parseInt(parts[1], 10);
+        if (!Number.isFinite(id)) continue;
+
+        const point: [number, number] = [pos.lng, pos.lat];
+
+        if (unitType === 'fireBrigade') {
+          const list = historyRef.current.fireBrigades[id] || [];
+          const lastPosition = lastPositionsRef.current.fireBrigades[id];
+
+          if (!lastPosition || Math.hypot(lastPosition[0] - point[0], lastPosition[1] - point[1]) > MIN_POSITION_CHANGE) {
+            list.push(point);
+            if (list.length > maxPoints) list.shift();
+            historyRef.current.fireBrigades[id] = list;
+            lastPositionsRef.current.fireBrigades[id] = point;
+            changed = true;
+          }
+        } else if (unitType === 'foresterPatrol') {
+          const list = historyRef.current.foresterPatrols[id] || [];
+          const lastPosition = lastPositionsRef.current.foresterPatrols[id];
+
+          if (!lastPosition || Math.hypot(lastPosition[0] - point[0], lastPosition[1] - point[1]) > MIN_POSITION_CHANGE) {
+            list.push(point);
+            if (list.length > maxPoints) list.shift();
+            historyRef.current.foresterPatrols[id] = list;
+            lastPositionsRef.current.foresterPatrols[id] = point;
+            changed = true;
+          }
+        }
+      }
+
+      if (changed) {
+        setHistoryVersion((v) => v + 1);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [showAgentHistory]);
 
   useOnTooltipChange(setTooltip);
   useEffect(() => {

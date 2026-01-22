@@ -1,3 +1,12 @@
+// Disable console logging
+if (process.env.NODE_ENV === 'production' || true) {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+}
+
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';

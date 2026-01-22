@@ -22,18 +22,15 @@ const initialState: LogsState = {
   maxEntries: MAX_ENTRIES_DEFAULT,
 };
 
-// Helper function to create a log entry with auto-generated id and timestamp
 const createLogEntry = (payload: Omit<LogEntry, 'id' | 'timestamp'>): LogEntry => ({
   id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
   timestamp: new Date().toISOString(),
   ...payload,
 });
 
-// Helper function to trim array to max entries
 const trim = (arr: LogEntry[], maxEntries: number): LogEntry[] =>
   arr.length > maxEntries ? arr.slice(arr.length - maxEntries) : arr;
 
-// Helper function to add log entry to a specific log array
 const addLogToArray = (
   state: LogsState,
   logArray: 'logs' | 'llmLogs',

@@ -88,6 +88,10 @@ class AgentPositionController {
 
   public writeBatch(agents: Array<any>) {
     const now = Date.now();
+    // Debug: log first batch to see what data format we're receiving
+    if (agents.length > 0 && typeof window !== 'undefined') {
+      // console.log('[AgentPositionController] writeBatch received', agents.length, 'agents. Sample:', agents[0]);
+    }
     for (const p of agents) {
       const id = Number(p.fireBrigadeId ?? p.foresterPatrolId ?? p.id ?? p.unitId ?? p.agentId);
       if (!Number.isFinite(id)) continue;
@@ -118,8 +122,9 @@ class AgentPositionController {
       if (Math.abs(lng) < 1e-6 && Math.abs(lat) < 1e-6) continue;
 
       const prev = this.positions.get(key);
-      const initialPrev = prev ? prev : { id, unitType: inferredUnitType ?? undefined, lng, lat, t: now - 50 } as Pos;
-      this.positions.set(key, { id, unitType: inferredUnitType ?? undefined, lng, lat, t: now, prev: initialPrev });
+      const state = p.state ?? null;
+      const initialPrev = prev ? prev : { id, unitType: inferredUnitType ?? undefined, state: state ?? undefined, lng, lat, t: now - 50 } as Pos;
+      this.positions.set(key, { id, unitType: inferredUnitType ?? undefined, state: state ?? undefined, lng, lat, t: now, prev: initialPrev });
       for (const alt of ['u', 'fireBrigade', 'foresterPatrol']) {
         if (alt !== (inferredUnitType ?? 'u')) this.positions.delete(`${alt}:${id}`);
       }

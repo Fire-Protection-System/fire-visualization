@@ -65,11 +65,6 @@ export type Recommendation = {
   priority: string;
 };
 
-/**
- * No idea whats going on here.
- * Good luck everyone.
- */
-
 let lastUpdateTime = 0;
 let updateCount = 0;                              // number of processed state messages
 let totalIncomingMessages = 0;                    // total raw messages received from SSE
@@ -84,24 +79,22 @@ let receivedRecommendationCount = 0;
 let processedRecommendationCount = 0;
 let droppedRecommendationCount = 0;
 let lastRecommendationProcessedTime = 0;
+
+// For llm chat logging
 let lastLlmChatLogTime = 0;
 let lastLlmChatHash = '';
 let lastStateUpdateLogTime = 0;
 let lastFastSectorUpdateTime = 0;
-let lastOrderSendTime = 0;
 let lastAgentPositionUpdateTime = 0;
 
 const THROTTLE_MS = 200;                          // ~5fps (200ms)
-const METRICS_LOG_INTERVAL = 5000;                // Log metrics every 5 seconds for faster feedback
 const RECOMMENDATION_LOG_THROTTLE_MS = 1000;      // Log recommendations at most once per 1 second
 const RECOMMENDATION_PROCESS_THROTTLE_MS = 500;   // Process up to ~2 recommendation messages per second
 const LLM_CHAT_LOG_THROTTLE_MS = 1000;            // Log LLM chat at most once per 1 second
 const STATE_UPDATE_LOG_THROTTLE_MS = 1000;        // Log state updates at most once per 1 second
 const FAST_SECTOR_UPDATE_THROTTLE_MS = 50;        // Process fast updates at most once per 50ms (~20fps)
-const ORDER_SEND_THROTTLE_MS = 500;               // Max 2 orders per second
-const AGENT_POSITION_UPDATE_THROTTLE_MS = 33;     // ~30fps
 
-// Expose lightweight runtime metrics in development for quick performance checks
+
 if (typeof window !== 'undefined') {
   // @ts-ignore
   window.__getServerCommMetrics = () => ({
@@ -110,8 +103,7 @@ if (typeof window !== 'undefined') {
     droppedAgentPositionUpdateCount,
     totalIncomingMessages,
     messagesByType,
-    // agentPositionController metrics (may be undefined if module order differs)
-    agentFps: typeof agentPositionController !== 'undefined' ? agentPositionController.getFps() : null,
+    agentFps:   typeof agentPositionController !== 'undefined' ? agentPositionController.getFps() : null,
     bufferSize: typeof agentPositionController !== 'undefined' ? agentPositionController.getBufferSize() : null,
   });
 }
@@ -119,23 +111,19 @@ if (typeof window !== 'undefined') {
 const transformSectorData = (sector: any) => ({
   sectorId: sector.sectorId,
   state: {
-    temperature: sector.state?.temperature ?? 0,
-    windSpeed: sector.state?.windSpeed ?? 0,
-    windDirection: sector.state?.windDirection ?? 'NE',
-    airHumidity: sector.state?.airHumidity ?? 0,
+    temperature:         sector.state?.temperature ?? 0,
+    windSpeed:           sector.state?.windSpeed ?? 0,
+    windDirection:       sector.state?.windDirection ?? 'NE',
+    airHumidity:         sector.state?.airHumidity ?? 0,
     plantLitterMoisture: sector.state?.plantLitterMoisture ?? 0,
-    co2Concentration: sector.state?.co2Concentration ?? 0,
-    pm2_5Concentration: sector.state?.pm2_5Concentration ?? 0,
-    timestamp: sector.state?.timestamp
-      ? (typeof sector.state.timestamp === 'string'
-        ? new Date(sector.state.timestamp).getTime()
-        : new Date(sector.state.timestamp).getTime())
-      : null,
-    fireLevel: sector.state?.fireLevel ?? null,
-    burnLevel: sector.state?.burnLevel ?? null,
-    extinguishLevel: sector.state?.extinguishLevel ?? null,
+    co2Concentration:    sector.state?.co2Concentration ?? 0,
+    pm2_5Concentration:  sector.state?.pm2_5Concentration ?? 0,
+    fireLevel:           sector.state?.fireLevel ?? 0,
+    burnLevel:           sector.state?.burnLevel ?? 0,
+    extinguishLevel:     sector.state?.extinguishLevel ?? 0,
+    timestamp:           sector.state?.timestamp  ? Date.parse(sector.state.timestamp as any) : 0,
   },
-  contours: sector.contours || [],
+  contours:         sector.contours || [],
   assignedBrigades: sector.assignedBrigades || [],
 });
 
@@ -146,13 +134,13 @@ const transformFireBrigadeDataMeta = (fb: any) => ({
   sectorId: fb.sectorId || 0,
 });
 
-const transformFireBrigadeDataWithLocation = (fb: any) => ({
-  fireBrigadeId: fb.fireBrigadeId,
-  action: fb.action || 'EXTINGUISH',
-  state: fb.state || 'AVAILABLE',
-  sectorId: fb.sectorId || 0,
-  location: fb.location ?? fb.currentLocation ?? { longitude: 0, latitude: 0 },
-});
+// const transformFireBrigadeDataWithLocation = (fb: any) => ({
+//   fireBrigadeId: fb.fireBrigadeId,
+//   action: fb.action || 'EXTINGUISH',
+//   state: fb.state || 'AVAILABLE',
+//   sectorId: fb.sectorId || 0,
+//   location: fb.location ?? fb.currentLocation ?? { longitude: 0, latitude: 0 },
+// });
 
 const transformForesterPatrolDataMeta = (fp: any) => ({
   foresterPatrolId: fp.foresterPatrolId,
@@ -169,22 +157,38 @@ const transformForesterPatrolDataMeta = (fp: any) => ({
 //   location: fp.location ?? fp.currentLocation ?? { longitude: 0, latitude: 0 },
 // });
 
+function detectMessageFlags(raw: unknown) {
+  if (typeof raw !== 'string') {
+    return { isFast: false, isRec: false, isAgentPos: false };
+  }
+
+  return {
+    isFast: raw.includes('"type":"sector_update_fast"'),
+    isRec:
+      raw.includes('"recommendedActions"') ||
+      raw.includes('"recommendation"') ||
+      raw.includes('support.recommendations'),
+    isAgentPos:
+      raw.includes('"type":"agent_position"') ||
+      raw.includes('"agent_positions"'),
+  };
+}
+
 const startSseConnection = (
   configuration: Configuration,
   dispatch: any,
-  intervalSeconds: number
+  intervalSeconds: number,
+  getState: () => RootState
 ) => {
+  // Store getState in a local variable to ensure it's available in closure
+  const getStateFn = getState;
   const runSimulationUrl = `${API_CONFIG.BACKEND_BASE_URL}${API_CONFIG.ENDPOINTS.SIMULATION.RUN}?interval=${intervalSeconds}`;
 
   fetchEventSource(runSimulationUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json', },
     body: JSON.stringify(configuration),
     signal: abortController.signal,
-
-    // retry: 1000,
     openWhenHidden: true,
 
     onopen: async (response: Response): Promise<void> => {
@@ -263,17 +267,17 @@ const startSseConnection = (
 
         const parsedData = JSON.parse(event.data);
 
-        // Fast-path: forward agent arrays from full state to AgentPositionController and avoid sending locations to Redux
+        // Fast-path: forward agent arrays to AgentPositionController
         try {
           const data = parsedData.type === 'state' ? parsedData.data : parsedData;
-          if (data?.fireBrigades && Array.isArray(data.fireBrigades) && data.fireBrigades.length > 0) {
+          if (Array.isArray(data?.fireBrigades) && data.fireBrigades.length > 0) {
             agentPositionController.writeBatch(data.fireBrigades);
           }
-          if (data?.foresterPatrols && Array.isArray(data.foresterPatrols) && data.foresterPatrols.length > 0) {
+          if (Array.isArray(data?.foresterPatrols) && data.foresterPatrols.length > 0) {
             agentPositionController.writeBatch(data.foresterPatrols);
           }
         } catch (e) {
-          // ignore write batch errors - fall back to normal processing
+          // ignore
         }
 
         // Check if this is an LLM message
@@ -363,14 +367,12 @@ const startSseConnection = (
         }
         */
 
-        if (parsedData.type === 'sector_update_fast' && parsedData.sectors) {
-          dispatch(updateSectorStatesFast({ sectorUpdates: parsedData.sectors }));
-          return;
-        }
-
-        if (parsedData.type === 'sector_update_fast' && parsedData.data?.sectors) {
-          dispatch(updateSectorStatesFast({ sectorUpdates: parsedData.data.sectors }));
-          return;
+        if (parsedData.type === 'sector_update_fast') {
+          const sectors = parsedData.sectors || parsedData.data?.sectors;
+          if (sectors) {
+            dispatch(updateSectorStatesFast({ sectorUpdates: sectors }));
+            return;
+          }
         }
 
         const stateData = parsedData.type === 'state' ? parsedData.data : parsedData;
@@ -397,15 +399,14 @@ const startSseConnection = (
             lastAgentPositionUpdateTime = nowTs;
           }
 
+          const timestamp = stateData.timestamp
+            ? (typeof stateData.timestamp === 'string' ? stateData.timestamp : new Date(stateData.timestamp).toISOString())
+            : new Date().toISOString();
+
           const configurationUpdate = {
             forestName: stateData.forestName || '',
-            timestamp: stateData.timestamp
-              ? (typeof stateData.timestamp === 'string'
-                ? stateData.timestamp
-                : new Date(stateData.timestamp).toISOString())
-              : new Date().toISOString(),
+            timestamp,
             sectors: (stateData.sectors || []).map(transformSectorData),
-            // Pozycje agentów NIE są aktualizowane z pełnego update!
             fireBrigades: (stateData.fireBrigades || []).map(transformFireBrigadeDataMeta),
             foresterPatrols: (stateData.foresterPatrols || []).map(transformForesterPatrolDataMeta),
           };
@@ -414,28 +415,27 @@ const startSseConnection = (
             try {
               const controller = require('../features/maps/AgentPositionController').agentPositionController;
               const positions = controller.getPositionsSnapshot();
+              const hasValidLocation = (loc: any) => loc && !(Math.abs(loc.longitude) < 1e-6 && Math.abs(loc.latitude) < 1e-6);
 
-              configurationUpdate.fireBrigades = (configurationUpdate.fireBrigades || []).map((fb: any) => {
+              configurationUpdate.fireBrigades = configurationUpdate.fireBrigades.map((fb: any) => {
                 const loc = fb.location ?? fb.currentLocation ?? { longitude: 0, latitude: 0 };
-                if ((!loc || (Math.abs(loc.longitude) < 1e-6 && Math.abs(loc.latitude) < 1e-6))) {
-                  const key = `fireBrigade:${fb.fireBrigadeId}`;
-                  const pos = positions.get(key);
+                if (!hasValidLocation(loc)) {
+                  const pos = positions.get(`fireBrigade:${fb.fireBrigadeId}`);
                   if (pos) return { ...fb, location: { longitude: pos.lng, latitude: pos.lat } };
                 }
                 return fb;
               });
 
-              configurationUpdate.foresterPatrols = (configurationUpdate.foresterPatrols || []).map((fp: any) => {
+              configurationUpdate.foresterPatrols = configurationUpdate.foresterPatrols.map((fp: any) => {
                 const loc = fp.location ?? fp.currentLocation ?? { longitude: 0, latitude: 0 };
-                if ((!loc || (Math.abs(loc.longitude) < 1e-6 && Math.abs(loc.latitude) < 1e-6))) {
-                  const key = `foresterPatrol:${fp.foresterPatrolId}`;
-                  const pos = positions.get(key);
+                if (!hasValidLocation(loc)) {
+                  const pos = positions.get(`foresterPatrol:${fp.foresterPatrolId}`);
                   if (pos) return { ...fp, location: { longitude: pos.lng, latitude: pos.lat } };
                 }
                 return fp;
               });
             } catch (e) {
-              // pass
+              // ignore
             }
           }
 
@@ -448,32 +448,23 @@ const startSseConnection = (
 
           dispatch(updateConfiguration({ configurationUpdate }));
 
-          try {
-            const now = Date.now();
-            if (now - lastStateUpdateLogTime >= STATE_UPDATE_LOG_THROTTLE_MS) {
-              lastStateUpdateLogTime = now;
-              const sectorCount = configurationUpdate.sectors?.length ?? 0;
-              const fbCount = configurationUpdate.fireBrigades?.length ?? 0;
-              const fpCount = configurationUpdate.foresterPatrols?.length ?? 0;
-              const tick = stateData.tick ?? '?';
-              dispatch(addLog({
-                text: `[Tick ${tick}] State update — sectors:${sectorCount}, FB:${fbCount}, FP:${fpCount}`,
-                source: 'simulation',
-                level: 'info'
-              }));
-            }
-          } catch (e) {
-            // ignore log errors
+          const now = Date.now();
+          if (now - lastStateUpdateLogTime >= STATE_UPDATE_LOG_THROTTLE_MS) {
+            lastStateUpdateLogTime = now;
+            const tick = stateData.tick ?? '?';
+            dispatch(addLog({
+              text: `[Tick ${tick}] State update — sectors:${configurationUpdate.sectors?.length ?? 0}, FB:${configurationUpdate.fireBrigades?.length ?? 0}, FP:${configurationUpdate.foresterPatrols?.length ?? 0}`,
+              source: 'simulation',
+              level: 'info'
+            }));
           }
         }
 
         if (stateData.timestamp && stateData.recommendedActions) {
           const transformedActions = (stateData.recommendedActions || []).map((action: any) => {
-            const unitType: 'fireBrigade' | 'foresterPatrol' | undefined = action.unitType === 'fireBrigade'
-              ? 'fireBrigade'
-              : action.unitType === 'foresterPatrol'
-                ? 'foresterPatrol'
-                : undefined;
+            const unitType = (action.unitType === 'fireBrigade' || action.unitType === 'foresterPatrol') 
+              ? action.unitType 
+              : undefined;
 
             const unitId = String(action.unitId ?? action.fireBrigadeId ?? '');
             const sectorId = String(action.sectorId ?? '');
@@ -490,22 +481,38 @@ const startSseConnection = (
             };
           });
 
+          const timestamp = stateData.timestamp
+            ? (typeof stateData.timestamp === 'string' ? stateData.timestamp : new Date(stateData.timestamp).toISOString())
+            : new Date().toISOString();
+
           dispatch(updateRecommendation({
-            timestamp: stateData.timestamp
-              ? (typeof stateData.timestamp === 'string'
-                ? stateData.timestamp
-                : new Date(stateData.timestamp).toISOString())
-              : new Date().toISOString(),
+            timestamp,
             recommendedActions: transformedActions,
             priority: stateData.priority || "normal"
           }));
+
+          // Auto-apply: If toggle is ON, send all orders immediately
+          if (getStateFn().recommendation.autoApplyEnabled && transformedActions.length > 0) {
+            transformedActions.forEach((action: any) => {
+              const unitId = Number(action.unitId);
+              const sectorId = Number(action.sectorId);
+              
+              if (unitId > 0 && sectorId > 0) {
+                const unitType = action.unitType === 'fireBrigade' ? 'brigade' : 
+                                action.unitType === 'foresterPatrol' ? 'forester' : undefined;
+                if (unitType) {
+                  dispatch(sendBrigadeOrForesterMoveOrder(unitId, sectorId, unitType, 'auto'));
+                }
+              }
+            });
+          }
 
 
           try {
             const now = Date.now();
             const timeSinceLastLog = now - lastRecommendationLogTime;
 
-            const currentHash = transformedActions.map(a =>
+            const currentHash = transformedActions.map((a: any) =>
               `${a.unitType}:${a.unitId}:${a.sectorId}:${a.actionType}`
             ).sort().join('|');
 
@@ -547,7 +554,7 @@ const startSseConnection = (
         }
 
       } catch (parseError) {
-        console.error('[Simulation] Failed to parse event data:', parseError, event.data);
+        // console.error('[Simulation] Failed to parse event data:', parseError, event.data);
       }
     },
     onerror: (error) => {
@@ -556,7 +563,7 @@ const startSseConnection = (
         error?.name === 'AbortError';
 
       if (!isBrokenPipe) {
-        console.error('[Simulation] SSE error:', error);
+        // console.error('[Simulation] SSE error:', error);
       } else {
         // console.log('[Simulation] SSE connection interrupted, will retry...'); // Disabled for performance
       }
@@ -614,7 +621,7 @@ export const startFetchingConfigurationUpdate = (): ThunkAction<void, RootState,
     dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: true }));
 
     const intervalSeconds = serverCommunication.tickInterval ?? 2.0; // Default to 2s for better performance
-    startSseConnection(configurationToUse, dispatch, intervalSeconds);
+    startSseConnection(configurationToUse, dispatch, intervalSeconds, getState);
   };
 };
 
@@ -641,7 +648,7 @@ export const resumeSimulationIfRunning = (): ThunkAction<void, RootState, unknow
       dispatch(serverCommunicationSlice.actions.setIsFetching({ isFetching: true }));
 
       const intervalSeconds = serverCommunication.tickInterval ?? 2.0; // Default to 2s for better performance
-      startSseConnection(snapshotData.config, dispatch, intervalSeconds);
+      startSseConnection(snapshotData.config, dispatch, intervalSeconds, getState);
     } catch (error) {
       // ignore resume errors
     }
@@ -674,44 +681,19 @@ function getRandomIntInclusive(min: number, max: number) {
 
 export const sendBrigadeOrForesterMoveOrder = (unitId: number, targetSectorId: number, type: "brigade" | "forester", source: string = 'ui'): ThunkAction<void, RootState, unknown, AnyAction> => {
   return async (dispatch: any, getState: () => RootState) => {
-    // OPTIMIZATION: Throttle orders from frontend - max 1 order every 500ms
-    const now = Date.now();
-    if (now - lastOrderSendTime < ORDER_SEND_THROTTLE_MS) {
-      // console.warn(`[Simulation] Order throttled - wait ${(ORDER_SEND_THROTTLE_MS - (now - lastOrderSendTime)).toFixed(0)}ms`);
-      return;
-    }
-    lastOrderSendTime = now;
-
-    // Block auto-applied orders unless runtime flag explicitly allows them.
-    // This is a defensive safeguard in case a built/served bundle enables the auto-apply feature unexpectedly.
-    const allowAutoOrders = typeof window !== 'undefined' && (window as any).__ALLOW_AUTO_RECOMMENDATION__ === true;
-    if (source === 'auto' && !allowAutoOrders) {
-      // Log and silently ignore the auto order to avoid unintended moves.
-      try {
-        dispatch(addLog({ text: `[Simulation] Blocked auto order (source=auto) for unit=${unitId} -> sector=${targetSectorId}`, source: 'simulation', level: 'warn' }));
-      } catch (e) {
-        // ignore logging errors
-      }
-      return;
-    }
-
     const state = getState();
     const { mapConfiguration } = state;
 
-    // Validate input - sector IDs should be positive integers
     if (!targetSectorId || targetSectorId <= 0) {
-      // console.warn(`[Simulation] Invalid target sector ID: ${targetSectorId}. Sector IDs must be positive integers.`);
       return;
     }
 
     const targetSector = mapConfiguration.configuration.sectors.find((sector) => sector.sectorId === targetSectorId);
 
     if (!targetSector) {
-      // console.warn(`[Simulation] Target sector ${targetSectorId} not found in configuration. Available sectors: ${mapConfiguration.configuration.sectors.map(s => s.sectorId).join(', ')}`);
       return;
     }
 
-    // Generate random position within sector bounds
     const getRandomPositionInSector = (contours: number[][]): { longitude: number, latitude: number } => {
       const minLon = Math.min(contours[0][0], contours[1][0], contours[2][0], contours[3][0]);
       const maxLon = Math.max(contours[0][0], contours[1][0], contours[2][0], contours[3][0]);
@@ -734,13 +716,10 @@ export const sendBrigadeOrForesterMoveOrder = (unitId: number, targetSectorId: n
         [type == "brigade" ? "fireBrigadeId" : "foresterPatrolId"]: unitId,
         goingToBase: false,
         location: targetPosition,
-        // FIX: Add explicit action field for backend processing
         action: type === "brigade" ? "EXTINGUISH" : "PATROL",
-        // Include origin so backend and logs can distinguish auto-applied vs manual orders
         source: source
       };
 
-      // logging removed for performance
       dispatch(addLog({ text: `[Simulation] Sending ${type} order (source=${source}): unit=${unitId} -> sector=${targetSectorId}`, source: 'simulation', level: 'info' }));
 
       if (type === "brigade") {

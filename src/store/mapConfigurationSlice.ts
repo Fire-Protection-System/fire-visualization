@@ -33,15 +33,18 @@ export const mapConfigurationSlice = createSlice({
   name: 'mapConfiguration',
   initialState,
   reducers: {
+
     setConfiguration: (state, action) => {
       const { configuration } = action.payload;
       const processedSectors = Configuration.preprocessSectors(configuration);
       state.configuration = { ...configuration, sectors: processedSectors };
     },
+
     updateConfiguration: (state, action: { payload: { configurationUpdate: ConfigurationUpdate }; type: string }) => {
       const { configurationUpdate } = action.payload;
       state.configuration = Configuration.updateConfiguration(state.configuration, configurationUpdate);
     },
+
     updateSectorStatesFast: (state, action) => {
       const startTime = performance.now();
       const { sectorUpdates } = action.payload;
@@ -64,16 +67,6 @@ export const mapConfigurationSlice = createSlice({
         sector.initialState.extinguishLevel = update.extinguishLevel;
       }
       
-      const updateTime = performance.now() - startTime;
-      _updateSectorStatesCount++;
-      const now = Date.now();
-      const timeSinceLastUpdate = now - _lastUpdateTime;
-      
-      // Only log every 5th update to reduce console spam
-      if (_updateSectorStatesCount % 5 === 0) {
-        // logging removed for performance
-      }
-      _lastUpdateTime = now;
     },
     updateSectorAndAgentStatesFast: (state, action) => {
       const startTime = performance.now();
@@ -83,7 +76,6 @@ export const mapConfigurationSlice = createSlice({
       let fireBrigadesUpdated = 0;
       let foresterPatrolsUpdated = 0;
       
-      // Fast sector updates (already optimized)
       if (sectorUpdates && sectorUpdates.length > 0) {
         const sectorById = new Map(state.configuration.sectors.map((sector) => [sector.sectorId, sector]));
         for (const update of sectorUpdates) {
@@ -101,9 +93,7 @@ export const mapConfigurationSlice = createSlice({
         }
       }
       
-      // Fast agent position/state updates
       if (agentUpdates) {
-        // Update fire brigades
         if (agentUpdates.fireBrigades && agentUpdates.fireBrigades.length > 0) {
           const fbMap = new Map(state.configuration.fireBrigades.map(fb => [fb.fireBrigadeId, fb]));
           for (const update of agentUpdates.fireBrigades) {
@@ -118,7 +108,6 @@ export const mapConfigurationSlice = createSlice({
           }
         }
         
-        // Update forester patrols
         if (agentUpdates.foresterPatrols && agentUpdates.foresterPatrols.length > 0) {
           const fpMap = new Map(state.configuration.foresterPatrols.map(fp => [fp.foresterPatrolId, fp]));
           for (const update of agentUpdates.foresterPatrols) {
@@ -134,16 +123,6 @@ export const mapConfigurationSlice = createSlice({
         }
       }
       
-      const updateTime = performance.now() - startTime;
-      _updateSectorAndAgentStatesCount++;
-      const now = Date.now();
-      const timeSinceLastUpdate = now - _lastUpdateTime;
-      
-      // Only log every 5th update to reduce console spam
-      if (_updateSectorAndAgentStatesCount % 5 === 0) {
-        // logging removed for performance
-      }
-      _lastUpdateTime = now;
     },
     setCurrentSectorId: (state, action) => {
       const { currentSectorId: prevSectorId } = state;

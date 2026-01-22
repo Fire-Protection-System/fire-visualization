@@ -212,7 +212,7 @@ export const useSectorsLayer = ({ sectors }: Configuration, disableOnHover?: boo
       billboard: true,
     });
 
-    console.debug('[useSectorsLayer] creating sector layers', { sectorCount, includeLabels: sectorCount <= HIDE_LABELS_SECTOR_COUNT });
+    // console.debug('[useSectorsLayer] creating sector layers', { sectorCount, includeLabels: sectorCount <= HIDE_LABELS_SECTOR_COUNT });
     return sectorCount > HIDE_LABELS_SECTOR_COUNT ? [polygonLayer] : [polygonLayer, textLayer];
   }, [sectors, disableOnHover, onClickHandler, currentSectorId, sectorColorTriggers]);
 };

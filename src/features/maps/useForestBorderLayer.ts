@@ -9,7 +9,7 @@ export const useForestBorderLayer = ({ location }: Configuration) => {
   // Forest border removed - return empty layer to not render the green border
   return useMemo(
     () => {
-      console.debug('[useForestBorderLayer] creating ForestBorder layer (no data)', { location });
+      // console.debug('[useForestBorderLayer] creating ForestBorder layer (no data)', { location });
       return new PolygonLayer<Region>({
         id: 'ForestBorder',
         data: [],

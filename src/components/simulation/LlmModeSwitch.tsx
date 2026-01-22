@@ -52,9 +52,9 @@ const LlmModeSwitch: React.FC = () => {
     <FormControlLabel
       control={
         <Switch
-          checked={enabled}
-          onChange={handleToggle}
-          disabled={loading}
+          checked={false}
+          onChange={() => {}}
+          disabled={true}
           color="secondary"
         />
       }

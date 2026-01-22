@@ -21,12 +21,14 @@ interface RecommendationState {
   recommendations:  Record<string, ActionItem>;
   timestamp:        string | null;
   priority:         string | null;
+  autoApplyEnabled: boolean;
 }
 
 const initialState: RecommendationState = {
   recommendations:  {},
   timestamp:        null,
   priority:         null,
+  autoApplyEnabled: false,
 };
 
 export const recommendationSlice = createSlice({
@@ -35,21 +37,22 @@ export const recommendationSlice = createSlice({
   reducers: {
     updateRecommendation(state, action: PayloadAction<Recommendation>) {
       const { timestamp, recommendedActions, priority } = action.payload;
+      const getKey = ({ unitType, unitId }: { unitType: UnitType; unitId: string }) => unitType ? `${unitType}:${unitId}` : unitId;
 
       state.recommendations = {};
 
-      for (const actionItem of recommendedActions) {
-        const key = actionItem.unitType
-          ? `${actionItem.unitType}:${actionItem.unitId}`
-          : actionItem.unitId;
-        state.recommendations[key] = actionItem;
+      for (const item of recommendedActions) {
+        state.recommendations[getKey({ unitType: item.unitType || 'fireBrigade', unitId: item.unitId })] = item;
       }
 
       state.timestamp = timestamp;
       state.priority = priority;
     },
+    setAutoApplyEnabled(state, action: PayloadAction<boolean>) {
+      state.autoApplyEnabled = action.payload;
+    },
   },
 });
 
-export const { updateRecommendation } = recommendationSlice.actions;
+export const { updateRecommendation, setAutoApplyEnabled } = recommendationSlice.actions;
 export default recommendationSlice.reducer;

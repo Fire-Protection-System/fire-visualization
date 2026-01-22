@@ -20,37 +20,71 @@ type MarkerEntry = {
  * Simulation constants. Probably should be configurable... 
  */
 
-
 const STATE_STABLE_MS = 200;
 const DEFAULT = '#ff6600';
 
+// Colors aligned with Visualizer Legend (see HELP tab -> "Visualizer Legend")
+// Fire Brigade:
+//   - Extinguishing: rgb(255, 0, 0)
+//   - Travelling:    rgb(0, 100, 255)
+//   - Available:     rgb(0, 200, 0)
+
 const FIRE_BRIGADE_COLORS: Record<string, string> = {
-  TRAVELLING:    '#0064ff',
-  EXTINGUISHING: '#ff0000',
-  AVAILABLE:     '#00c800'
+  TRAVELLING:    '#0064ff', // rgb(0, 100, 255)
+  EXTINGUISHING: '#ff0000', // rgb(255, 0, 0)
+  AVAILABLE:     '#00c800'  // rgb(0, 200, 0)
 };
 
+// Forester Patrols:
+//   - Patrolling:    rgb(255, 165, 0)
+//   - Travelling:    rgb(173, 216, 230)
+//   - Available/Idle:rgb(128, 128, 128)
+
 const FORESTER_COLORS: Record<string, string> = {
-  PATROLLING: '#ff9900',
-  TRAVELLING: '#66ccff',
-  AVAILABLE:  '#888888'
+  PATROLLING: '#ffa500', // rgb(255, 165, 0)
+  TRAVELLING: '#add8e6', // rgb(173, 216, 230)
+  AVAILABLE:  '#808080'  // rgb(128, 128, 128)
 };
 
 export default function AgentMarkerManager() {
   const map = useMap();
   const registryRef = useRef<Map<string, MarkerEntry>>(new Map());
-  // Trails: store recent history points per agent for fast trail rendering
   const trailsRef = useRef<Map<string, Array<{ lng: number; lat: number; x?: number; y?: number; t: number }>>>(new Map());
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const needsReprojectRef = useRef<boolean>(false);
+  const showTrailsRef = useRef<boolean>(false);
 
-  const TRAIL_MAX_POINTS = 60; // max points per agent
-  const TRAIL_MIN_PIXEL_DISTANCE = 2; // min px movement to add a point
+  // const TRAIL_MAX_POINTS = 5000; // max points per agent - increased for full history
+  const TRAIL_MIN_PIXEL_DISTANCE = 1; // min px movement to add a point
+
+  // Listen to global "History paths" toggle from STATS tab (LogTabs).
+  useEffect(() => {
+    const onToggle = (next?: boolean) => {
+      const value = typeof next === 'boolean' ? next : !showTrailsRef.current;
+      showTrailsRef.current = value;
+
+      // When turning history off, only clear canvas (keep trails stored for when toggle is turned back on)
+      if (!value) {
+        const canvas = overlayCanvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }
+    };
+
+    eventEmitter.addListener('toggleAgentHistory', onToggle);
+    return () => {
+      eventEmitter.removeListener('toggleAgentHistory', onToggle);
+    };
+  }, []);
 
   useEffect(() => {
     if (!map) return;
 
-    // Create a single overlay canvas for drawing trails (fast, single DOM node)
+    // Create a single overlay canvas for drawing trails
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mapContainer = (map as any).getContainer?.() || (map as any).getDiv?.();
     let canvas: HTMLCanvasElement | null = overlayCanvasRef.current;
@@ -86,17 +120,13 @@ export default function AgentMarkerManager() {
     resizeCanvas();
     const ro = new ResizeObserver(resizeCanvas);
     if (mapContainer) ro.observe(mapContainer);
-    const onMove = () => {
-      needsReprojectRef.current = true;
-      // keep canvas sized/positioned when map moves
-    };
-
+    const onMove = () => { needsReprojectRef.current = true; };
     map.on('move', onMove);
 
-    // Animation loop: lerp display positions toward latest target positions at high FPS
+    // Animation loop
     let animRafId: number | null = null;
     let lastAnimTs = performance.now();
-    const ANIM_SMOOTH_MS = 180; // time constant in ms for smoothing towards target
+    const ANIM_SMOOTH_MS = 360 // 180; // time constant in ms for smoothing towards target
 
     const animate = (ts?: number) => {
       const nowTsAnim = ts ?? performance.now();
@@ -108,6 +138,12 @@ export default function AgentMarkerManager() {
       for (const [key, entry] of registryRef.current.entries()) {
         const target = entry.targetPos ?? entry.lastPos;
         const display = entry.displayPos ?? entry.lastPos;
+        
+        if (typeof window !== 'undefined' && (window as any).__DEBUG_AGENT_ANIMATION && 
+            (Math.abs(target.lng - display.lng) > 0.0001 || Math.abs(target.lat - display.lat) > 0.0001)) {
+          // console.log('[AgentMarkerManager] Animating', key, 'from', display, 'to', target);
+        }
+        
         const newLng = display.lng + (target.lng - display.lng) * alpha;
         const newLat = display.lat + (target.lat - display.lat) * alpha;
         entry.displayPos = { lng: newLng, lat: newLat };
@@ -115,39 +151,28 @@ export default function AgentMarkerManager() {
         try {
           entry.marker.setLngLat([newLng, newLat]);
         } catch (e) { /* ignore */ }
+      }
 
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const proj = (map as any).project([newLng, newLat]);
-          const px = proj.x;
-          const py = proj.y;
-          const lastP = entry.lastProj;
-          if (!lastP || Math.hypot(px - lastP.x, py - lastP.y) >= TRAIL_MIN_PIXEL_DISTANCE) {
-            const trails = trailsRef.current.get(key) || [];
-            trails.push({ lng: newLng, lat: newLat, x: px, y: py, t: Date.now() });
-            if (trails.length > TRAIL_MAX_POINTS) trails.shift();
-            trailsRef.current.set(key, trails);
-            entry.lastProj = { x: px, y: py };
-          }
-        } catch (e) { /* ignore */ }
-
-      // Draw trails on overlay canvas (RAF loop)
+      // Draw all trails on overlay canvas (AFTER all agents are processed)
       try {
         const canvas = overlayCanvasRef.current;
         if (canvas) {
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            // Clear canvas
             const w = canvas.width;
             const h = canvas.height;
+
             ctx.clearRect(0, 0, w, h);
 
-            // Reproject if map moved/zoomed
+            if (!showTrailsRef.current) {
+              animRafId = (typeof requestAnimationFrame !== 'undefined') ? requestAnimationFrame(animate) : null;
+              return;
+            }
+
             if (needsReprojectRef.current) {
               for (const [, arr] of trailsRef.current.entries()) {
                 for (const p of arr) {
                   try {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const proj = (map as any).project([p.lng, p.lat]);
                     p.x = proj.x;
                     p.y = proj.y;
@@ -157,16 +182,20 @@ export default function AgentMarkerManager() {
               needsReprojectRef.current = false;
             }
 
-            // Draw each trail
+            // Draw each trail for all agents
             for (const [key, arr] of trailsRef.current.entries()) {
               if (!arr || arr.length < 2) continue;
-              // color based on unit (use last point state's color if available)
+
               const entryForKey = registryRef.current.get(key);
               const sampleState = entryForKey?.lastState;
               const unitType = key.split(':')[0];
-              const colorHex = getColorFor(Number(key.split(':')[1]), unitType === 'fireBrigade' ? 'fireBrigade' : 'foresterPatrol', sampleState);
+              const colorHex = getColorFor(
 
-              // convert hex to rgba
+                Number(key.split(':')[1]),
+                unitType === 'fireBrigade' ? 'fireBrigade' : 'foresterPatrol',
+                sampleState
+              );
+
               const r = parseInt(colorHex.slice(1, 3), 16);
               const g = parseInt(colorHex.slice(3, 5), 16);
               const b = parseInt(colorHex.slice(5, 7), 16);
@@ -175,13 +204,13 @@ export default function AgentMarkerManager() {
                 const p1 = arr[i];
                 const p2 = arr[i + 1];
 
-                // Ensure projected positions exist. If projection previously failed we try again here
                 try {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   if (typeof p1.x !== 'number' || typeof p1.y !== 'number') {
                     const proj1 = (map as any).project([p1.lng, p1.lat]);
                     p1.x = proj1.x; p1.y = proj1.y;
                   }
+
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   if (typeof p2.x !== 'number' || typeof p2.y !== 'number') {
                     const proj2 = (map as any).project([p2.lng, p2.lat]);
@@ -189,31 +218,25 @@ export default function AgentMarkerManager() {
                   }
                 } catch (e) { /* ignore projection errors */ }
 
+
                 const ageFactor = i / (arr.length - 1); // 0..1
-                // Rounded line ends and joins for smoother trails
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                // newer segments are thicker and more opaque
                 const alpha = 0.08 + 0.82 * ageFactor; // 0.08..0.9
                 ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
-                const lineWidth = 1.2 * (0.5 + 0.9 * ageFactor); // ~0.9..2.28 depending on age
-                ctx.lineWidth = lineWidth;
-                // subtle glow for newer segments
-                ctx.shadowBlur = 1.5 * ageFactor;
-                ctx.shadowColor = `rgba(${r},${g},${b},${0.5 * ageFactor})`;
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = 'transparent';
+                
                 ctx.beginPath();
                 ctx.moveTo(p1.x ?? 0, p1.y ?? 0);
                 ctx.lineTo(p2.x ?? 0, p2.y ?? 0);
                 ctx.stroke();
-                // reset shadow so it doesn't affect other drawings
-                ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+                
               }
             }
           }
         }
       } catch (e) {
         // ignore canvas errors
-      }
       }
 
       animRafId = (typeof requestAnimationFrame !== 'undefined') ? requestAnimationFrame(animate) : null;
@@ -257,8 +280,14 @@ export default function AgentMarkerManager() {
       try {
         if (typeof window !== 'undefined' && (window as any).__DEBUG_AGENT_POSITIONS) {
           try {
-            console.debug('[AgentMarkerManager] incoming positions', { size: positions.size, keys: Array.from(positions.keys()).slice(0,10), sample: Array.from(positions.entries()).slice(0,5) });
+            // console.debug('[AgentMarkerManager] incoming positions', { size: positions.size, keys: Array.from(positions.keys()).slice(0,10), sample: Array.from(positions.entries()).slice(0,5) });
           } catch (e) { /* ignore debug errors */ }
+        }
+        // Always log first few updates to debug movement issues (throttled)
+        if (positions.size > 0 && (!(window as any).__lastPosLog || Date.now() - (window as any).__lastPosLog > 2000)) {
+          const sample = Array.from(positions.entries()).slice(0, 3);
+          // console.log('[AgentMarkerManager] Received positions:', positions.size, 'agents. Sample:', sample.map(([k, p]) => ({ key: k, id: p.id, lng: p.lng, lat: p.lat, state: p.state })));
+          (window as any).__lastPosLog = Date.now();
         }
       } catch (e) { /* ignore */ }
 
@@ -358,7 +387,26 @@ export default function AgentMarkerManager() {
             .setLngLat([pos.lng, pos.lat])
             .addTo(map as maplibregl.Map);
 
-          registryRef.current.set(keyStr, { marker, lastPos: pos, displayPos: { lng: pos.lng, lat: pos.lat }, lastSeen: now, lastState: stateVal, lastStateChangeTime: now });
+          // Initialize trail with first position point (history starts from beginning)
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const proj = (map as any).project([pos.lng, pos.lat]);
+            const trails = trailsRef.current.get(keyStr) || [];
+            trails.push({ lng: pos.lng, lat: pos.lat, x: proj.x, y: proj.y, t: now });
+            // if (trails.length > TRAIL_MAX_POINTS) trails.shift();
+            trailsRef.current.set(keyStr, trails);
+          } catch (e) { /* ignore projection errors */ }
+          
+          registryRef.current.set(keyStr, { 
+            marker, 
+            lastPos: pos, 
+            displayPos: { lng: pos.lng, lat: pos.lat }, 
+            targetPos: { lng: pos.lng, lat: pos.lat }, 
+            lastSeen: now, 
+            lastState: stateVal, 
+            lastStateChangeTime: now,
+            lastProj: undefined // Will be set on first animation frame
+          });
 
 
         } else {
@@ -445,23 +493,45 @@ export default function AgentMarkerManager() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const proj = (map as any).project([pos.lng, pos.lat]);
                 entry.lastProj = { x: proj.x, y: proj.y };
+                // Record trail point for large jumps (ALWAYS record, toggle only controls drawing)
+                const trails = trailsRef.current.get(keyStr) || [];
+                trails.push({ lng: pos.lng, lat: pos.lat, x: proj.x, y: proj.y, t: now });
+                // if (trails.length > TRAIL_MAX_POINTS) trails.shift();
+                trailsRef.current.set(keyStr, trails);
               } catch (e) { /* ignore */ }
             }
-            entry.targetPos = { lng: pos.lng, lat: pos.lat };
+            
+            // Record trail point when position updates (ALWAYS record, toggle only controls drawing)
+            // This ensures trails are recorded from the beginning of simulation, not just when toggle is on
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const proj = (map as any).project([pos.lng, pos.lat]);
+              const px = proj.x;
+              const py = proj.y;
+              const lastP = entry.lastProj;
+
+              // Only record if moved enough pixels to avoid too many points
+              if (!lastP || Math.hypot(px - lastP.x, py - lastP.y) >= TRAIL_MIN_PIXEL_DISTANCE) {
+                const trails = trailsRef.current.get(keyStr) || [];
+                trails.push({ lng: pos.lng, lat: pos.lat, x: px, y: py, t: now });
+                // if (trails.length > TRAIL_MAX_POINTS) trails.shift();
+                trailsRef.current.set(keyStr, trails);
+                entry.lastProj = { x: px, y: py };
+              }
+
+            } catch (e) { /* ignore projection errors */ }
           } catch (e) {
             // ignore map errors
           }
 
+          entry.targetPos = { lng: pos.lng, lat: pos.lat };
           entry.lastPos = pos;
           entry.lastSeen = now;
         }
       }
 
-      // Prune stale markers and trails immediately if they are missing from positions
-      // Relaxed Pruning: Only remove markers if they haven't been seen for STALE_THRESHOLD
-      // Keep trails around for a while so short signal dropouts don't erase history.
+      // Prune stale markers immediately if they are missing from positions
       const STALE_THRESHOLD = 30_000; // 30s
-      const TRAIL_RETENTION_MS = 5 * 60 * 1000; // 5 minutes
       for (const [key, entry] of registryRef.current.entries()) {
         if (!positions.has(key)) {
           if (now - entry.lastSeen > STALE_THRESHOLD) {
@@ -471,28 +541,18 @@ export default function AgentMarkerManager() {
               // pass
             }
             registryRef.current.delete(key);
-            // NOTE: do not immediately delete the trail — keep it for potential reconnection
           }
         }
       }
-      // Remove very old trails (keeps recent trails for offline reconnection)
+
+
       for (const [tkey, arr] of trailsRef.current.entries()) {
         if (!arr || arr.length === 0) {
           trailsRef.current.delete(tkey);
-          continue;
-        }
-        const lastT = arr[arr.length - 1].t;
-        if (now - lastT > TRAIL_RETENTION_MS) {
-          trailsRef.current.delete(tkey);
         }
       }
-
-      // Trails rendering moved to RAF loop for smoother, higher-frequency rendering.
-      // Drawing is now performed every frame inside animate().
-      // No drawing here in subscription handler.
     });
 
-    // Capture current refs to avoid issues in cleanup
     const registry = registryRef.current;
     const trails = trailsRef.current;
 
@@ -503,8 +563,6 @@ export default function AgentMarkerManager() {
         try { entry.marker.remove(); } catch (e) { /* ignore */ }
       }
       registry.clear();
-      // cleanup trails
-      trails.clear();
       cleanupCanvas();
     };
   }, [map]);
